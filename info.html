@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rules, FAQ & Legal — BloxBid.lol</title>
+<meta name="description" content="How BloxBid works: bidding rules, daily resets, allowed links, FAQ, privacy, terms and contact.">
+<meta name="theme-color" content="#0A6CFF">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="info" data-nav="info">
+
+<section class="cat-hero">
+  <div class="wrap">
+    <span class="eyebrow">How it works</span>
+    <h1>Rules, FAQ &amp; legal</h1>
+    <p>BloxBid is a public leaderboard. Rank is what you pay — everything else is just Roblox data.</p>
+  </div>
+</section>
+
+<section class="section" style="padding-top:24px">
+  <div class="wrap info">
+    <nav class="info__toc" aria-label="On this page">
+      <a href="#rules">Rules</a>
+      <a href="#faq">FAQ</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#terms">Terms</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="prose">
+      <section id="rules">
+        <h2>Rules</h2>
+        <h3>1. One link only</h3>
+        <p>The only link accepted when listing is the official Roblox experience URL
+           (<code>roblox.com/games/…</code>). Discord, YouTube, TikTok, X, Instagram, Linktree,
+           personal websites and custom URLs are rejected.</p>
+        <h3>2. One external destination</h3>
+        <p>A game page has exactly one external button: <b>PLAY ON ROBLOX</b>. Clicks are counted
+           before redirecting, so you always know how much traffic BloxBid sent you.</p>
+        <h3>3. Rank is what you pay</h3>
+        <ul>
+          <li>Positions are ordered purely by bid, highest first.</li>
+          <li>Outbidding requires at least the minimum difference over the position you are taking.</li>
+          <li>Ties are broken by whoever reached the amount first.</li>
+        </ul>
+        <h3>4. Daily reset</h3>
+        <p>The TODAY board closes at 00:00 UTC. The game holding #1 at that moment is archived as
+           that day's Daily Champion. The ALL-TIME board is never reset.</p>
+        <h3>5. Group verification</h3>
+        <p>Creator and group are read from the Roblox API and cannot be entered by hand. This is what
+           keeps anyone from listing a game as someone else's studio.</p>
+      </section>
+
+      <section id="faq">
+        <h2>FAQ</h2>
+        <details class="faq" open><summary>Is listing my game free?</summary>
+          <p>Yes. Listing is free and puts you on the board. Bidding is optional and only decides how
+             high you appear.</p></details>
+        <details class="faq"><summary>Is this advertising?</summary>
+          <p>No. There are no campaigns, CPM, CPC, audiences, targeting or banners. There is one
+             product: the leaderboard.</p></details>
+        <details class="faq"><summary>What happens when someone outbids me?</summary>
+          <p>You drop one or more positions and see it immediately in your dashboard, including who
+             passed you and by how much. You can raise your bid at any time.</p></details>
+        <details class="faq"><summary>Where does the game data come from?</summary>
+          <p>Name, thumbnail, creator, group, description, genre, subgenre, players, visits and
+             favorites are read from Roblox. Rank, bid and clicks are BloxBid's own metrics.</p></details>
+        <details class="faq"><summary>Do clicks affect my rank?</summary>
+          <p>No. Clicks are reporting for you, not a ranking signal. Only the bid moves you up.</p></details>
+        <details class="faq"><summary>Are you affiliated with Roblox?</summary>
+          <p>No. BloxBid.lol is an independent discovery platform and is not affiliated with,
+             endorsed by or sponsored by Roblox Corporation.</p></details>
+      </section>
+
+      <section id="privacy">
+        <h2>Privacy</h2>
+        <p>We collect the minimum needed to run a public leaderboard: the public Roblox data of listed
+           experiences, aggregate click counts on PLAY ON ROBLOX buttons, and basic account details for
+           developers who list a game.</p>
+        <p>We do not sell personal data, and we do not build advertising profiles — there is no ad
+           product to build them for.</p>
+      </section>
+
+      <section id="terms">
+        <h2>Terms</h2>
+        <p>By listing a game you confirm you are authorised to represent it. Bids buy a position on a
+           public leaderboard for as long as no one outbids you; they are not a guarantee of traffic,
+           players or revenue.</p>
+        <p>We may remove listings that break the link rules, impersonate another creator, or point to
+           experiences removed from Roblox.</p>
+      </section>
+
+      <section id="contact">
+        <h2>Contact</h2>
+        <p>Questions, listing problems or press: <a href="mailto:hello@bloxbid.lol">hello@bloxbid.lol</a></p>
+        <a class="btn" href="list.html">List Your Game</a>
+      </section>
+    </div>
+  </div>
+</section>
+
+<script src="scripts/data.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>

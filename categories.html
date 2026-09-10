@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Categories — BloxBid.lol</title>
+<meta name="description" content="Browse Roblox games by official genre and subgenre. Every category has its own all-time and today leaderboard.">
+<meta name="theme-color" content="#0A6CFF">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="categories" data-nav="categories">
+
+<div id="catAll">
+  <section class="cat-hero">
+    <div class="wrap">
+      <span class="eyebrow">Discovery</span>
+      <h1>Categories</h1>
+      <p>Based on official Roblox genres and subgenres. Every category has its own ALL-TIME and TODAY leaderboard.</p>
+    </div>
+  </section>
+  <section class="section" style="padding-top:28px">
+    <div class="wrap"><div class="grid-cats" id="allCats"></div></div>
+  </section>
+</div>
+
+<div id="catOne" hidden>
+  <section class="cat-hero">
+    <div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="index.html">Home</a><span class="sep">/</span>
+        <a href="categories.html">Categories</a><span class="sep">/</span>
+        <span id="catTitleCrumb"></span>
+      </nav>
+      <div class="row" style="gap:14px">
+        <span class="cat__icon" id="catIcon" style="width:52px;height:52px;font-size:1.5rem"></span>
+        <div>
+          <h1 id="catTitle"></h1>
+          <span class="board-note" id="catCount"></span>
+        </div>
+      </div>
+      <p id="catDesc"></p>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-block:20px">
+    <div class="board-toolbar">
+      <div class="segmented" role="tablist" aria-label="Ranking mode" id="catModeTabs">
+        <button role="tab" data-mode="all-time" aria-selected="true">ALL-TIME</button>
+        <button role="tab" data-mode="today" aria-selected="false">TODAY</button>
+      </div>
+      <span class="board-note"><span class="badge badge--live"><i class="pulse"></i>LIVE</span> category board</span>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:8px">
+    <div class="wrap">
+      <div id="catBoard"></div>
+      <div class="sec-head" style="margin-top:48px"><div><h2 style="font-size:var(--t-h3)">Other categories</h2></div></div>
+      <div class="chips" id="catOther"></div>
+    </div>
+  </section>
+</div>
+<script src="scripts/data.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>

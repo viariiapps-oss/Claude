@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Games — BloxBid.lol</title>
+<meta name="description" content="Browse every Roblox game listed on BloxBid: trending, new, most played, most visited, rising and highest bid.">
+<meta name="theme-color" content="#0A6CFF">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="games" data-nav="games">
+<section class="cat-hero">
+  <div class="wrap">
+    <span class="eyebrow">Discovery</span>
+    <h1>All games on BloxBid</h1>
+    <p>Find a game, see the ranking, outbid, reach #1, get discovered. Filter the whole catalogue below.</p>
+  </div>
+</section>
+
+<section class="wrap" style="padding-bottom:8px">
+  <div class="chips" id="filterChips" style="margin-bottom:22px"></div>
+  <div class="sec-head" style="margin-bottom:18px">
+    <div><h2 id="filterTitle" style="font-size:var(--t-h3)"></h2></div>
+    <span class="board-note" id="gamesCount"></span>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="wrap"><div id="gamesGrid"></div></div>
+</section>
+<script src="scripts/data.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>

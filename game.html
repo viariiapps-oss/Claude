@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game — BloxBid.lol</title>
+<meta name="description" content="Roblox game page with BloxBid rank, current bid, clicks, live stats and rank history.">
+<meta name="theme-color" content="#0A6CFF">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="game" data-nav="games">
+
+<section class="gamehead">
+  <div class="wrap">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="index.html">Home</a><span class="sep">/</span>
+      <a href="rankings.html">Rankings</a><span class="sep">/</span>
+      <a id="gCrumbCat" href="categories.html"></a><span class="sep">/</span>
+      <span id="gCrumbName"></span>
+    </nav>
+
+    <div class="gamehead__grid">
+      <div>
+        <div id="gThumb"></div>
+        <h1 id="gName"></h1>
+        <div class="gamehead__by">
+          <span>by <b id="gCreator"></b></span>
+          <span class="sep">·</span>
+          <span>Group <b id="gGroup"></b> <span class="badge badge--up">🔒 verified</span></span>
+        </div>
+        <div class="gamehead__tags" id="gTags"></div>
+        <p class="gamehead__desc" id="gDesc"></p>
+      </div>
+
+      <aside class="card bidpanel">
+        <div class="bidpanel__rank">
+          <span class="rank" id="gRank"></span>
+          <span>
+            <span class="bidpanel__rank-k">BloxBid rank</span>
+            <span class="bidpanel__rank-v" id="gRankToday"></span>
+          </span>
+        </div>
+        <div class="bidpanel__bid">
+          <span class="bidpanel__bid-k">Current bid</span>
+          <span class="bidpanel__bid-v" id="gBid"></span>
+          <span class="bidpanel__hint" id="gHint"></span>
+        </div>
+        <button class="btn btn--lg btn--block" id="gOutbid"></button>
+        <div class="bidpanel__grid">
+          <div class="minibox"><b id="clickCount">0</b><span>BloxBid clicks</span></div>
+          <div class="minibox"><b id="gPlayers">—</b><span>Playing now</span></div>
+        </div>
+        <a class="btn btn--block play-btn" id="gPlay" href="#" data-play>
+          ▶ PLAY ON ROBLOX
+        </a>
+        <p class="play-note">The only external destination on this page. Clicks are counted before redirecting.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="section section--sunken section--tight">
+  <div class="wrap">
+    <div class="sec-head"><div><span class="eyebrow">Roblox data</span><h2 style="font-size:var(--t-h3)">Live game statistics</h2></div></div>
+    <div class="statgrid" id="gStats"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="card chart-card reveal">
+      <div class="sec-head" style="margin-bottom:0">
+        <div><span class="eyebrow">Rank history</span><h2 style="font-size:var(--t-h3)">Last 14 days</h2></div>
+        <span class="badge badge--outline">Position over time</span>
+      </div>
+      <div class="chart-wrap" id="gChart"></div>
+      <div class="chart-legend" id="gChartMeta"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--sunken">
+  <div class="wrap">
+    <div class="sec-head"><div><span class="eyebrow">Keep exploring</span><h2 id="gSimilarTitle" style="font-size:var(--t-h3)"></h2></div>
+      <a class="link-more" href="games.html">All games →</a></div>
+    <div id="gSimilar"></div>
+  </div>
+</section>
+<script src="scripts/data.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BloxBid.lol — The leaderboard where Roblox games compete for #1</title>
+<meta name="description" content="Discover Roblox games, see who's rising and outbid your competition. The higher the bid, the higher the rank.">
+<meta name="theme-color" content="#0A6CFF">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="home" data-nav="home">
+
+<!-- ============================================================== HERO -->
+<section class="hero">
+  <div class="wrap hero__inner">
+    <span class="hero__pill">
+      Rank is what you pay
+      <span class="badge badge--live"><i class="pulse"></i>LIVE</span>
+    </span>
+    <h1>The leaderboard where <span class="grad">Roblox games</span> compete for #1</h1>
+    <p class="hero__sub">
+      Discover Roblox games, see who's rising and outbid your competition.
+      One link, one ranking, one destination — <b>Play on Roblox</b>.
+    </p>
+    <div class="hero__cta">
+      <a class="btn btn--lg" href="games.html">Explore Games</a>
+      <a class="btn btn--lg btn--ghost" href="list.html">List Your Game</a>
+    </div>
+    <p class="hero__note">Free to list · Paid bids only decide rank · No CPM, no CPC, no banners</p>
+  </div>
+</section>
+
+<!-- ======================================================== LIVE STATS -->
+<section class="wrap" aria-labelledby="live-h">
+  <h2 id="live-h" class="sr-only">Live platform stats</h2>
+  <div class="livebar" id="livebar"></div>
+</section>
+
+<!-- ======================================================= LEADERBOARD -->
+<section class="section" id="leaderboard">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">The Leaderboard</span>
+        <h2>Where Roblox games compete</h2>
+        <p>The higher the bid, the higher the rank. Daily board resets at midnight UTC.</p>
+      </div>
+      <a class="link-more" href="rankings.html">
+        View full rankings
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </div>
+
+    <div class="board-toolbar">
+      <div class="board-toolbar__left">
+        <div class="segmented" role="tablist" aria-label="Ranking mode" id="modeTabs">
+          <button role="tab" aria-selected="true" data-mode="all-time">ALL-TIME</button>
+          <button role="tab" aria-selected="false" data-mode="today">TODAY</button>
+        </div>
+        <span class="board-note" id="modeNote"></span>
+      </div>
+      <span class="board-note"><span class="badge badge--live"><i class="pulse"></i>LIVE</span> updating in real time</span>
+    </div>
+
+    <div id="homeBoard"></div>
+  </div>
+</section>
+
+<!-- =========================================================== TRENDING -->
+<section class="section section--sunken">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">🔥 Trending now</span>
+        <h2>Trending Games</h2>
+        <p>Fastest-moving experiences on BloxBid in the last 24 hours.</p>
+      </div>
+      <a class="link-more" href="games.html?filter=trending">See all trending →</a>
+    </div>
+    <div id="trendingGrid"></div>
+  </div>
+</section>
+
+<!-- ========================================================= CATEGORIES -->
+<section class="section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">Discovery</span>
+        <h2>Browse by category</h2>
+        <p>Official Roblox genres and subgenres — each with its own ALL-TIME and TODAY board.</p>
+      </div>
+      <a class="link-more" href="categories.html">All categories →</a>
+    </div>
+    <div class="grid-cats" id="catGrid"></div>
+  </div>
+</section>
+
+<!-- ====================================================== RISING GAMES -->
+<section class="section section--sunken">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">🚀 Climbing fast</span>
+        <h2>Rising Games</h2>
+        <p>Biggest rank gains over the last 14 days.</p>
+      </div>
+      <a class="link-more" href="games.html?filter=rising">See all rising →</a>
+    </div>
+    <div id="risingGrid"></div>
+  </div>
+</section>
+
+<!-- ======================================== MOST PLAYED + ACTIVITY FEED -->
+<section class="section">
+  <div class="wrap" style="display:grid;gap:28px;grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr);align-items:start"
+       id="playedRow">
+    <div>
+      <div class="sec-head">
+        <div>
+          <span class="eyebrow">👥 Right now</span>
+          <h2>Most Played</h2>
+        </div>
+        <a class="link-more" href="games.html?filter=most-players">All →</a>
+      </div>
+      <div id="mostPlayed"></div>
+    </div>
+    <div>
+      <div class="sec-head"><div><span class="eyebrow"><i class="pulse" style="color:var(--danger)"></i> Live activity</span><h2 style="font-size:var(--t-h3)">Latest bids</h2></div></div>
+      <div class="card" style="padding:8px"><div class="feed" id="feed"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================== DAILY CHAMPIONS -->
+<section class="section section--sunken">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">🏆 Hall of #1</span>
+        <h2>Daily Champions</h2>
+        <p>Every daily board closes at 00:00 UTC and is archived forever.</p>
+      </div>
+      <a class="link-more" href="daily.html">Full archive →</a>
+    </div>
+    <div class="champs" id="champs"></div>
+  </div>
+</section>
+
+<!-- ============================================================== CTA -->
+<section class="section section--tight">
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <span class="eyebrow" style="color:rgba(255,255,255,.9)">Where Roblox games compete</span>
+      <h2>Paste your game link. Pick your rank. Get discovered.</h2>
+      <p>Find a game → See the ranking → Outbid → Reach #1 → Get discovered. That's the whole product.</p>
+      <a class="btn btn--lg" href="list.html">List Your Game</a>
+    </div>
+  </div>
+</section>
+
+<script src="scripts/data.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>

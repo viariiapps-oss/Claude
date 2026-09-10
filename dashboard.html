@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Developer Dashboard — BloxBid.lol</title>
+<meta name="description" content="See your rank, your bid, your BloxBid clicks, your Roblox stats and who outbid you.">
+<meta name="theme-color" content="#0A6CFF">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="dashboard" data-nav="dashboard">
+<section class="dash">
+  <div class="wrap">
+    <div class="dash__head">
+      <div>
+        <span class="eyebrow">Developer dashboard</span>
+        <h1 style="font-size:var(--t-h1);margin-top:8px">Your game on the board</h1>
+      </div>
+      <a class="btn btn--ghost" href="list.html">+ Add another game</a>
+    </div>
+
+    <div class="chips" id="dSwitch" style="margin-bottom:22px"></div>
+
+    <div class="card mygame reveal" style="margin-bottom:20px">
+      <div id="dThumb"></div>
+      <div class="mygame__info">
+        <h3 id="dName"></h3>
+        <p style="color:var(--text-muted);font-size:var(--t-sm);margin-top:4px" id="dGroup"></p>
+        <div class="row" style="margin-top:16px;flex-wrap:wrap">
+          <button class="btn" id="dOutbidBtn">Increase bid</button>
+          <a class="btn btn--ghost" id="dGameLink" href="#">View public page</a>
+          <a class="btn btn--ghost" id="dPlay" href="#" data-play>▶ Play on Roblox</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="outbidAlert" style="margin-bottom:20px"></div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="dash__grid">
+      <div class="card chart-card reveal">
+        <div class="sec-head" style="margin-bottom:0">
+          <div><span class="eyebrow">Rank history</span><h2 style="font-size:var(--t-h3)">Your position over time</h2></div>
+        </div>
+        <div class="chart-wrap" id="dChart"></div>
+        <div class="chart-legend" id="dChartMeta"></div>
+      </div>
+
+      <div class="card" style="padding:20px">
+        <div class="sec-head" style="margin-bottom:12px">
+          <div><span class="eyebrow">Daily log</span><h2 style="font-size:var(--t-h3)">Last 8 days</h2></div>
+        </div>
+        <div class="table-scroll">
+          <table class="table-lite">
+            <thead><tr><th>Day</th><th>Rank</th><th>Bid</th><th>Clicks</th><th>Move</th></tr></thead>
+            <tbody id="dHistory"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script src="scripts/data.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>

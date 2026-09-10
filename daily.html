@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily — BloxBid.lol</title>
+<meta name="description" content="Today's Roblox leaderboard closes at midnight UTC. Browse the archive of every Daily Champion.">
+<meta name="theme-color" content="#0A6CFF">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="daily" data-nav="daily">
+<section class="cat-hero">
+  <div class="wrap">
+    <span class="eyebrow">Daily board</span>
+    <h1>Today's race for #1</h1>
+    <p>The daily board resets at 00:00 UTC. Whoever holds the top spot at reset becomes that day's champion — forever.</p>
+    <div class="board-note" id="dailyCountdown" style="margin-top:16px;font-size:var(--t-sm)"></div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:28px">
+  <div class="wrap">
+    <div class="sec-head"><div><h2 style="font-size:var(--t-h3)">TODAY leaderboard</h2>
+      <p>Ranked by today's bids only.</p></div>
+      <a class="link-more" href="rankings.html?mode=today">Full today board →</a></div>
+    <div id="todayBoard"></div>
+  </div>
+</section>
+
+<section class="section section--sunken">
+  <div class="wrap">
+    <div class="sec-head"><div><span class="eyebrow">🏆 Archive</span><h2>Daily Champions</h2>
+      <p>Every closed daily board, kept permanently.</p></div></div>
+    <div class="champs" id="dailyArchive"></div>
+  </div>
+</section>
+<script src="scripts/data.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>

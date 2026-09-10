@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rankings — BloxBid.lol</title>
+<meta name="description" content="The global Roblox leaderboard. All-time and today boards for every category. The higher the bid, the higher the rank.">
+<meta name="theme-color" content="#0A6CFF">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/components.css">
+<link rel="stylesheet" href="styles/pages.css">
+</head>
+<body data-page="rankings" data-nav="rankings">
+<section class="cat-hero">
+  <div class="wrap">
+    <span class="eyebrow">The Leaderboard</span>
+    <h1>All Roblox games, ranked by bid</h1>
+    <p>One global board. Two modes: ALL-TIME and TODAY. The daily board closes at midnight UTC and is archived.</p>
+  </div>
+</section>
+
+<section class="wrap section--tight" style="padding-bottom:0">
+  <div class="chips" id="catFilter" style="margin-bottom:22px"></div>
+
+  <div class="board-toolbar">
+    <div class="board-toolbar__left">
+      <div class="segmented" role="tablist" aria-label="Ranking mode" id="modeTabs">
+        <button role="tab" data-mode="all-time" aria-selected="true">ALL-TIME</button>
+        <button role="tab" data-mode="today" aria-selected="false">TODAY</button>
+      </div>
+      <span class="board-note"><b id="boardScope"></b> · <span id="boardCount"></span></span>
+    </div>
+    <span class="board-note" id="resetNote"></span>
+  </div>
+</section>
+
+<section class="section" style="padding-top:20px">
+  <div class="wrap"><div id="fullBoard"></div></div>
+</section>
+
+<section class="section section--tight">
+  <div class="wrap">
+    <div class="cta-band">
+      <h2>Not on the board yet?</h2>
+      <p>Paste your Roblox game link and pick the position you want. No campaigns, no CPM, no targeting.</p>
+      <a class="btn btn--lg" href="list.html">List Your Game</a>
+    </div>
+  </div>
+</section>
+<script src="scripts/data.js"></script>
+<script src="scripts/ui.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>
