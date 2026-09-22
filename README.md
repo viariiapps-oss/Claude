@@ -1,5 +1,9 @@
 # BloxBid.lol
 
+> **Also in this repository:** [`rblx-analytics/`](rblx-analytics/) — **RBLX Analytics**, a full-stack Next.js
+> analytics platform for Roblox experiences (players, visits, growth, estimated revenue). See its
+> [README](rblx-analytics/README.md) for setup and deployment.
+
 **The leaderboard where Roblox games compete for #1.**
 Roblox game discovery + public leaderboards + live bidding + game statistics.
 
