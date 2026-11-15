@@ -8,7 +8,11 @@ import { storeReady } from "@/lib/store";
  * `email` apunta a la persona para avisarla y reservarle el descuento.
  */
 export async function POST(req: NextRequest) {
-  const { feature, email } = (await req.json().catch(() => ({}))) as { feature?: string; email?: string };
+  const { feature, email, choice } = (await req.json().catch(() => ({}))) as {
+    feature?: string;
+    email?: string;
+    choice?: string;
+  };
   if (!isFeature(feature)) return NextResponse.json({ ok: false }, { status: 400 });
   if (!allow(req, "interest", 20)) return NextResponse.json({ ok: false }, { status: 429 });
   if (!storeReady) {
@@ -25,6 +29,6 @@ export async function POST(req: NextRequest) {
   if (typeof email !== "string" || email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
     return NextResponse.json({ ok: false, message: "Ese correo no parece válido." }, { status: 400 });
   }
-  await recordLead(feature, email);
+  await recordLead(feature, email, typeof choice === "string" ? choice : undefined);
   return NextResponse.json({ ok: true });
 }

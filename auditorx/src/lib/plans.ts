@@ -59,19 +59,39 @@ export function euros(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-/** Funciones "próximamente" (fake doors): miden interés antes de construirlas. */
-export const COMING_SOON = {
-  reclamacion: { icon: "✉️", label: "Generar carta de reclamación", blurb: "Una carta lista para enviar, con las cláusulas y la normativa ya citadas." },
-  abogado: { icon: "⚖️", label: "Hablar con un abogado", blurb: "Una consulta de 15 minutos con un abogado que ya ha visto tu análisis." },
-  pdf: { icon: "📄", label: "Descargar informe en PDF", blurb: "Tu auditoría en un PDF para enviar al casero, al taller o a tu gestor." },
-  comparador: { icon: "💸", label: "Encontrar una oferta mejor", blurb: "Comparamos tu tarifa o presupuesto con el mercado y te decimos cuánto ahorrarías." },
-  whatsapp: { icon: "📲", label: "Auditar por WhatsApp", blurb: "Reenvía la foto del documento a un número y recibe el semáforo en el chat." },
-  alertas: { icon: "🔔", label: "Alertas de renovación", blurb: "Te avisamos antes de que venza una permanencia o se renueve un contrato." },
-  historial: { icon: "🗂️", label: "Historial de documentos", blurb: "Todas tus auditorías guardadas y ordenadas, para volver a ellas cuando quieras." },
-  reescribir: { icon: "✍️", label: "Reescribir mi CV con IA", blurb: "Te devolvemos tu currículum ya corregido y maquetado, listo para enviar." },
-  entrevista: { icon: "🎤", label: "Simulador de entrevista", blurb: "Practica las preguntas que te harán para ese puesto y recibe una valoración." },
-  ofertas: { icon: "🎯", label: "Adaptar mi CV a una oferta", blurb: "Pega el enlace de la oferta y ajustamos tu currículum a lo que piden." },
-  familia: { icon: "👥", label: "Plan familiar", blurb: "Comparte tus auditorías con hasta 5 personas de tu casa." },
-} as const;
+/**
+ * Funciones "próximamente" (fake doors): miden interés antes de construirlas.
+ * `pro` las anuncia como parte de los planes de pago; `choices` pregunta una
+ * preferencia (p. ej. el formato de exportación) y la cuenta en el informe.
+ */
+type Feature = { icon: string; label: string; blurb: string; pro?: boolean; choices?: readonly string[] };
 
-export type FeatureId = keyof typeof COMING_SOON;
+const FEATURE_LIST = {
+  exportar: {
+    icon: "📥",
+    label: "Exportar documento marcado",
+    blurb:
+      "Descarga tu propio documento con todo lo sospechoso o poco claro resaltado y explicado al margen, listo para enseñárselo a quien te lo dio.",
+    pro: true,
+    choices: ["PDF", "Word", "Imagen"],
+  },
+  seguimiento: {
+    icon: "🤖",
+    label: "Seguimiento con IA",
+    blurb:
+      "Una IA sigue tu caso: te recuerda los plazos, revisa lo que te conteste la otra parte y te dice cuál es el siguiente paso.",
+    pro: true,
+  },
+  reclamacion: { icon: "✉️", label: "Generar carta de reclamación", blurb: "Una carta lista para enviar, con las cláusulas y la normativa ya citadas.", pro: true },
+  abogado: { icon: "⚖️", label: "Hablar con un abogado", blurb: "Una consulta de 15 minutos con un abogado que ya ha visto tu análisis." },
+  comparador: { icon: "💸", label: "Encontrar una oferta mejor", blurb: "Comparamos tu tarifa o presupuesto con el mercado y te decimos cuánto ahorrarías." },
+  alertas: { icon: "🔔", label: "Alertas de renovación", blurb: "Te avisamos antes de que venza una permanencia o se renueve un contrato." },
+  historial: { icon: "🗂️", label: "Historial de documentos", blurb: "Todas tus auditorías guardadas y ordenadas, para volver a ellas cuando quieras.", pro: true },
+  reescribir: { icon: "✍️", label: "Reescribir mi CV con IA", blurb: "Te devolvemos tu currículum ya corregido y maquetado, listo para enviar.", pro: true },
+  entrevista: { icon: "🎤", label: "Simulador de entrevista", blurb: "Practica las preguntas que te harán para ese puesto y recibe una valoración." },
+  ofertas: { icon: "🎯", label: "Adaptar mi CV a una oferta", blurb: "Pega el enlace de la oferta y ajustamos tu currículum a lo que piden.", pro: true },
+  familia: { icon: "👥", label: "Plan familiar", blurb: "Comparte tus auditorías con hasta 5 personas de tu casa." },
+} satisfies Record<string, Feature>;
+
+export type FeatureId = keyof typeof FEATURE_LIST;
+export const COMING_SOON: Record<FeatureId, Feature> = FEATURE_LIST;

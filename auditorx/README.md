@@ -81,6 +81,9 @@ Once botones (`COMING_SOON` en `src/lib/plans.ts`) abren un aviso de «en constr
 correo a cambio de un 30 % de descuento en la primera suscripción. El descuento se aplica solo en el
 checkout cuando la cuenta usa ese mismo correo.
 
+El botón de exportar pregunta además el formato preferido (PDF, Word o imagen) y el informe cuenta
+cuántas personas eligen cada uno.
+
 Para ver qué funciones interesan más:
 
 ```bash

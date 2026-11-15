@@ -12,9 +12,38 @@ export function ComingSoonButton({
 }: {
   feature: FeatureId;
   onOpen: (f: FeatureId) => void;
-  variant?: "chip" | "action";
+  variant?: "chip" | "action" | "hero";
 }) {
   const f = COMING_SOON[feature];
+  const badge = (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+        f.pro ? "bg-warn text-ink" : "bg-stop text-white"
+      }`}
+    >
+      {f.pro ? "Pro" : "Nuevo"}
+    </span>
+  );
+  if (variant === "hero") {
+    return (
+      <button
+        onClick={() => onOpen(feature)}
+        className="flex w-full items-center gap-4 rounded-2xl border-2 border-ink bg-ink p-4 text-left text-white shadow-[4px_4px_0_0_var(--color-stop)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-stop)] active:translate-y-0"
+      >
+        <span className="text-3xl" aria-hidden>
+          {f.icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2 text-base font-bold">
+            {f.label} {badge}
+          </span>
+          <span className="mt-0.5 block text-sm text-white/70">
+            Con lo sospechoso resaltado · {f.choices?.join(", ")}
+          </span>
+        </span>
+      </button>
+    );
+  }
   return (
     <button
       onClick={() => onOpen(feature)}
@@ -28,9 +57,7 @@ export function ComingSoonButton({
         {f.icon}
       </span>
       <span className="min-w-0 flex-1">{f.label}</span>
-      <span className="rounded-full bg-stop px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-        Nuevo
-      </span>
+      {badge}
     </button>
   );
 }
@@ -47,6 +74,7 @@ export function ComingSoonModal({
 }) {
   const f = COMING_SOON[feature];
   const [email, setEmail] = useState(defaultEmail);
+  const [choice, setChoice] = useState(f.choices?.[0] ?? "");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [error, setError] = useState("");
 
@@ -67,7 +95,7 @@ export function ComingSoonModal({
       const res = await fetch("/api/interest", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ feature, email }),
+        body: JSON.stringify({ feature, email, choice }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message);
@@ -97,9 +125,31 @@ export function ComingSoonModal({
         <>
           <p className="mt-3 text-[15px] leading-relaxed">{f.blurb}</p>
           <p className="mt-2 text-[15px] leading-relaxed text-muted">
-            Todavía no está disponible: la estamos construyendo. Déjanos tu correo, te contamos más y te
+            Todavía no está disponible: la estamos construyendo
+            {f.pro ? " y formará parte de los planes de pago" : ""}. Déjanos tu correo, te contamos más y te
             avisamos cuando salga.
           </p>
+          {f.choices && (
+            <div className="mt-4">
+              <p className="text-sm font-semibold">¿En qué formato lo querrías?</p>
+              <div className="mt-2 flex gap-2" role="radiogroup" aria-label="Formato">
+                {f.choices.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={choice === c}
+                    onClick={() => setChoice(c)}
+                    className={`h-10 flex-1 rounded-full text-sm font-semibold transition ${
+                      choice === c ? "bg-ink text-white" : "border border-line"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="mt-4 rounded-xl bg-warn/25 p-3 text-[15px] font-medium leading-snug">
             🎁 De regalo, un {LEAD_DISCOUNT_PERCENT} % de descuento en tu primera suscripción.
           </p>

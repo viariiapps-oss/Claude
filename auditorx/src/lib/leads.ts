@@ -16,8 +16,11 @@ export async function recordClick(feature: FeatureId): Promise<void> {
   await store.incrby(`fd:clicks:${feature}`, 1);
 }
 
-export async function recordLead(feature: FeatureId, rawEmail: string): Promise<void> {
+export async function recordLead(feature: FeatureId, rawEmail: string, choice?: string): Promise<void> {
   const email = rawEmail.trim().toLowerCase();
+  if (choice && COMING_SOON[feature].choices?.includes(choice)) {
+    await store.incrby(`fd:choice:${feature}:${choice}`, 1);
+  }
   const existing = await leadFor(email);
   if (!existing?.features.includes(feature)) await store.incrby(`fd:emails:${feature}`, 1);
   await store.set(leadKey(email), {
@@ -41,6 +44,17 @@ export async function leadReport() {
       label: COMING_SOON[id].label,
       clicks: (await store.get<number>(`fd:clicks:${id}`)) ?? 0,
       emails: (await store.get<number>(`fd:emails:${id}`)) ?? 0,
+      ...(COMING_SOON[id].choices
+        ? {
+            choices: Object.fromEntries(
+              await Promise.all(
+                COMING_SOON[id].choices.map(
+                  async (c) => [c, (await store.get<number>(`fd:choice:${id}:${c}`)) ?? 0] as const,
+                ),
+              ),
+            ),
+          }
+        : {}),
     })),
   );
   const emails = await store.smembers("leads");

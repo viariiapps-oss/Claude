@@ -31,7 +31,7 @@ const LOADING_LINES = [
 type Phase = "idle" | "loading" | "result";
 type Dialog = { kind: "pricing" } | { kind: "login" } | { kind: "soon"; feature: FeatureId } | null;
 
-const LANDING_DOORS: FeatureId[] = ["whatsapp", "alertas", "historial", "familia"];
+const LANDING_DOORS: FeatureId[] = ["seguimiento", "alertas", "historial", "familia"];
 const RETURN_NOTICES: Record<string, string> = {
   plan: "¡Listo! Tu suscripción ya está activa.",
   pack: "¡Listo! Tus auditorías ya están en tu cuenta.",

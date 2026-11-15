@@ -34,14 +34,14 @@ const COPY: Record<Mode, { traps: string; versus: string; good: string; bad: str
     versus: "Lo legal vs. lo que intentan colarte",
     good: "Lo legal",
     bad: "Lo que intentan",
-    next: ["reclamacion", "abogado", "pdf", "comparador"],
+    next: ["reclamacion", "seguimiento", "abogado", "comparador"],
   },
   revision: {
     traps: "Los 3 puntos débiles",
     versus: "Lo que buscan vs. lo que pone ahora",
     good: "Lo que buscan",
     bad: "Lo que pone ahora",
-    next: ["reescribir", "ofertas", "entrevista", "pdf"],
+    next: ["reescribir", "ofertas", "entrevista", "seguimiento"],
   },
 };
 
@@ -170,6 +170,9 @@ export function ResultView({
         <>
           <section className="animate-rise pt-2">
             <h2 className="mb-3 text-center text-sm font-bold">Da el siguiente paso</h2>
+            <div className="mb-3">
+              <ComingSoonButton feature="exportar" variant="hero" onOpen={onFeature} />
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {copy.next.map((f) => (
                 <ComingSoonButton key={f} feature={f} variant="action" onOpen={onFeature} />
