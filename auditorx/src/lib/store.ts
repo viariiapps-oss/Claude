@@ -12,6 +12,7 @@ export interface Store {
   del(key: string): Promise<void>;
   getdel<T>(key: string): Promise<T | null>;
   incrby(key: string, by: number): Promise<number>;
+  expire(key: string, seconds: number): Promise<void>;
   sadd(key: string, member: string): Promise<void>;
   smembers(key: string): Promise<string[]>;
 }
@@ -39,6 +40,9 @@ function redisStore(redis: Redis): Store {
     },
     getdel: (k) => redis.getdel(k),
     incrby: (k, by) => redis.incrby(k, by),
+    async expire(k, seconds) {
+      await redis.expire(k, seconds);
+    },
     async sadd(k, m) {
       await redis.sadd(k, m);
     },
@@ -71,9 +75,14 @@ function memoryStore(): Store {
       return v;
     },
     async incrby(k, by) {
-      const n = Number(live(k)?.v ?? 0) + by;
-      data.set(k, { v: n });
+      const e = live(k);
+      const n = Number(e?.v ?? 0) + by;
+      data.set(k, { v: n, exp: e?.exp });
       return n;
+    },
+    async expire(k, seconds) {
+      const e = live(k);
+      if (e) e.exp = Date.now() + seconds * 1000;
     },
     async sadd(k, m) {
       const s = new Set((live(k)?.v as string[]) ?? []);

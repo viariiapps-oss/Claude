@@ -14,7 +14,7 @@ import { prepareImage } from "@/lib/image";
 import { parsePartialJson } from "@/lib/partial-json";
 import { type FeatureId, PLANS } from "@/lib/plans";
 import { ComingSoonButton, ComingSoonModal } from "./ComingSoon";
-import { LoginModal } from "./LoginModal";
+import { type AuthMode, LoginModal } from "./LoginModal";
 import { Pricing } from "./Pricing";
 import { type PartialAudit, ResultView, levelOf } from "./ResultView";
 import { TrafficLight } from "./TrafficLight";
@@ -29,7 +29,7 @@ const LOADING_LINES = [
 ];
 
 type Phase = "idle" | "loading" | "result";
-type Dialog = { kind: "pricing" } | { kind: "login" } | { kind: "soon"; feature: FeatureId } | null;
+type Dialog = { kind: "pricing" } | { kind: "login"; mode: AuthMode } | { kind: "soon"; feature: FeatureId } | null;
 
 const LANDING_DOORS: FeatureId[] = ["seguimiento", "alertas", "historial", "familia"];
 const RETURN_NOTICES: Record<string, string> = {
@@ -69,7 +69,9 @@ export function Auditor() {
       .catch(() => {});
     if (params.has("ok")) setNotice(RETURN_NOTICES[params.get("ok")!] ?? "");
     else if (params.get("login") === "sent") setNotice("Te hemos enviado un enlace de acceso. Revisa tu correo.");
-    else if (params.has("error")) setError("No se pudo iniciar sesión. Inténtalo de nuevo.");
+    else if (params.get("error") === "OAuthAccountNotLinked") {
+      setError("Ese correo ya está registrado con otro método. Entra como lo hiciste la primera vez.");
+    } else if (params.has("error")) setError("No se pudo iniciar sesión. Inténtalo de nuevo.");
     if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
@@ -204,8 +206,8 @@ export function Auditor() {
               className="rounded-full border border-line bg-card px-3 py-1.5 text-xs font-medium"
             >
               {planName && <span className="font-bold">{planName} · </span>}
-              {account.remaining} {account.remaining === 1 ? "auditoría" : "auditorías"} ·{" "}
-              <span className="font-semibold text-stop">Más</span>
+              {account.remaining} {account.remaining === 1 ? "auditoría" : "auditorías"}
+              <span className="font-semibold text-stop"> +</span>
             </button>
             {account.user ? (
               <details className="relative">
@@ -232,12 +234,20 @@ export function Auditor() {
               </details>
             ) : (
               account.providers.length > 0 && (
-                <button
-                  onClick={() => setDialog({ kind: "login" })}
-                  className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"
-                >
-                  Entrar
-                </button>
+                <>
+                  <button
+                    onClick={() => setDialog({ kind: "login", mode: "login" })}
+                    className="rounded-full px-2 py-1.5 text-xs font-semibold"
+                  >
+                    Entrar
+                  </button>
+                  <button
+                    onClick={() => setDialog({ kind: "login", mode: "register" })}
+                    className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"
+                  >
+                    Registrarse
+                  </button>
+                </>
               )
             )}
           </div>
@@ -432,11 +442,13 @@ export function Auditor() {
           onClose={() => setDialog(null)}
           onLogin={() => {
             sessionStorage.setItem("ax_after_login", "pricing");
-            setDialog({ kind: "login" });
+            setDialog({ kind: "login", mode: "register" });
           }}
         />
       )}
-      {account && dialog?.kind === "login" && <LoginModal account={account} onClose={() => setDialog(null)} />}
+      {account && dialog?.kind === "login" && (
+        <LoginModal account={account} initialMode={dialog.mode} onClose={() => setDialog(null)} />
+      )}
       {dialog?.kind === "soon" && (
         <ComingSoonModal
           feature={dialog.feature}

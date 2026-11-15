@@ -1,4 +1,5 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import type { Adapter, AdapterAccount, AdapterUser, VerificationToken } from "next-auth/adapters";
 import type { Provider } from "next-auth/providers";
@@ -8,7 +9,7 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 import { secret } from "./session";
-import { MOCK, store, storeReady } from "./store";
+import { store, storeReady } from "./store";
 
 /* ── Adaptador mínimo sobre el almacén ──────────────────────────────────── */
 
@@ -65,50 +66,101 @@ const adapter: Adapter = {
   },
 };
 
+/* ── Correo y contraseña ────────────────────────────────────────────────── */
+
+const scryptAsync = promisify(scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
+const pwKey = (email: string) => `au:pw:${email}`;
+const failKey = (email: string) => `au:fail:${email}`;
+const MAX_FAILS = 8;
+const LOCK_SECONDS = 15 * 60;
+
+export const MIN_PASSWORD = 8;
+const normalize = (email: unknown) => String(email ?? "").trim().toLowerCase();
+const validEmail = (email: string) => email.length <= 200 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16);
+  const hash = await scryptAsync(password, salt, 64);
+  return `${salt.toString("base64")}:${hash.toString("base64")}`;
+}
+
+async function checkPassword(password: string, stored: string): Promise<boolean> {
+  const [salt, hash] = stored.split(":").map((p) => Buffer.from(p, "base64"));
+  const given = await scryptAsync(password, salt, hash.length);
+  return timingSafeEqual(given, hash);
+}
+
+export class RegisterError extends Error {}
+
+/**
+ * Alta con correo y contraseña. Solo si ese correo no tiene ya una cuenta:
+ * así nadie puede añadir una contraseña a la cuenta de otra persona.
+ */
+export async function registerUser(rawEmail: unknown, password: unknown): Promise<void> {
+  const email = normalize(rawEmail);
+  if (!validEmail(email)) throw new RegisterError("Ese correo no parece válido.");
+  if (typeof password !== "string" || password.length < MIN_PASSWORD || password.length > 200) {
+    throw new RegisterError(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`);
+  }
+  if (await userByEmail(email)) {
+    throw new RegisterError("Ya existe una cuenta con ese correo. Inicia sesión.");
+  }
+  await saveUser({ id: randomUUID(), email, emailVerified: null });
+  await store.set(pwKey(email), await hashPassword(password));
+}
+
+async function passwordLogin(rawEmail: unknown, password: unknown): Promise<AdapterUser | null> {
+  const email = normalize(rawEmail);
+  if (!validEmail(email) || typeof password !== "string" || password.length > 200) return null;
+  // Freno a la fuerza bruta: tras varios fallos, el correo queda bloqueado un rato.
+  if (((await store.get<number>(failKey(email))) ?? 0) >= MAX_FAILS) return null;
+
+  const stored = await store.get<string>(pwKey(email));
+  const user = stored && (await checkPassword(password, stored)) ? await userByEmail(email) : null;
+  if (!user) {
+    if ((await store.incrby(failKey(email), 1)) === 1) await store.expire(failKey(email), LOCK_SECONDS);
+    return null;
+  }
+  await store.del(failKey(email));
+  return user;
+}
+
 /* ── Proveedores: cada uno se activa solo si tiene sus variables ────────── */
 
-export type ProviderId = "google" | "apple" | "github" | "email" | "demo";
+export type ProviderId = "password" | "google" | "apple" | "github" | "email";
 
 const env = process.env;
-const providers: Provider[] = [];
-const enabled: ProviderId[] = [];
+const enabled: ProviderId[] = ["password"];
+const providers: Provider[] = [
+  Credentials({
+    id: "password",
+    credentials: { email: {}, password: {} },
+    authorize: (c) => passwordLogin(c.email, c.password),
+  }),
+];
 
-// Google, Apple y GitHub verifican el correo, así que es seguro unir en una
-// sola cuenta a quien entra por dos vías con la misma dirección.
+// Las cuentas no se unen solas por tener el mismo correo: una cuenta creada
+// con contraseña no ha demostrado ser dueña de esa dirección. Quien intente
+// entrar por otra vía con un correo ya registrado recibe un aviso.
 if (env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET) {
-  providers.push(Google({ allowDangerousEmailAccountLinking: true }));
+  providers.push(Google);
   enabled.push("google");
 }
 if (env.AUTH_APPLE_ID && env.AUTH_APPLE_SECRET) {
-  providers.push(Apple({ allowDangerousEmailAccountLinking: true }));
+  providers.push(Apple);
   enabled.push("apple");
 }
 if (env.AUTH_GITHUB_ID && env.AUTH_GITHUB_SECRET) {
-  providers.push(GitHub({ allowDangerousEmailAccountLinking: true }));
+  providers.push(GitHub);
   enabled.push("github");
 }
 if (env.AUTH_RESEND_KEY && env.AUTH_EMAIL_FROM) {
-  // Enlace mágico por correo: sin contraseñas que guardar.
+  // Enlace mágico por correo: sirve también para entrar si olvidas la contraseña.
   providers.push(Resend({ id: "email", apiKey: env.AUTH_RESEND_KEY, from: env.AUTH_EMAIL_FROM }));
   enabled.push("email");
 }
-if (MOCK) {
-  // Solo para probar la interfaz: entra con cualquier correo, sin verificar.
-  providers.push(
-    Credentials({
-      id: "demo",
-      credentials: { email: {} },
-      async authorize(c) {
-        const email = String(c.email ?? "").trim().toLowerCase();
-        if (!/^\S+@\S+\.\S+$/.test(email)) return null;
-        return (await userByEmail(email)) ?? saveUser({ id: randomUUID(), email, emailVerified: null });
-      },
-    }),
-  );
-  enabled.push("demo");
-}
 
-/** Proveedores disponibles; vacío si falta el almacén o no hay ninguno configurado. */
+/** Proveedores disponibles; vacío si falta la base de datos. */
 export const authProviders: ProviderId[] = storeReady ? enabled : [];
 
 const config: NextAuthConfig = {
