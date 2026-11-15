@@ -55,7 +55,7 @@ export function Pricing({
       selected ? "border-ink bg-paper" : "border-line"
     }`;
   const toggle = (on: boolean) =>
-    `h-9 flex-1 rounded-full text-sm font-semibold transition ${on ? "bg-ink text-white" : "text-muted"}`;
+    `h-9 flex-1 rounded-full text-sm font-semibold transition ${on ? "bg-ink text-paper" : "text-muted"}`;
 
   return (
     <Modal title="Más auditorías, por céntimos" onClose={onClose}>

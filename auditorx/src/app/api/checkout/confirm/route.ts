@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("session_id");
   try {
     const kind = id ? await fulfill(id) : null;
-    return NextResponse.redirect(`${base}/?ok=${kind ?? "0"}`);
+    return NextResponse.redirect(kind === "renta" ? `${base}/renta?ok=renta` : `${base}/?ok=${kind ?? "0"}`);
   } catch (err) {
     console.error("[checkout/confirm]", err);
     return NextResponse.redirect(`${base}/?ok=0`);

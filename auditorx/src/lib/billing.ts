@@ -8,6 +8,8 @@ import {
   discountApplies,
   planById,
 } from "./plans";
+import { RENTA_PRICE } from "./plans";
+import { rentaCreditsKey } from "./renta/access";
 import { MOCK, store } from "./store";
 
 const PLAN_CACHE_MS = 60 * 60 * 1000;
@@ -59,7 +61,8 @@ export async function planFor(userId: string): Promise<PlanId> {
 
 export type Purchase =
   | { kind: "plan"; plan: string; interval: Interval }
-  | { kind: "pack"; pack: string };
+  | { kind: "pack"; pack: string }
+  | { kind: "renta" };
 
 export class CheckoutError extends Error {}
 
@@ -85,7 +88,8 @@ export async function startCheckout(
 ): Promise<string> {
   const plan = purchase.kind === "plan" ? planById(purchase.plan) : undefined;
   const pack = purchase.kind === "pack" ? PACKS.find((p) => p.id === purchase.pack) : undefined;
-  if (!plan && !pack) throw new CheckoutError("Ese producto no existe.");
+  const renta = purchase.kind === "renta";
+  if (!plan && !pack && !renta) throw new CheckoutError("Ese producto no existe.");
 
   const bill = await billing(user.id);
   if (plan && (await planFor(user.id)) !== "free") {
@@ -98,6 +102,10 @@ export async function startCheckout(
     // Pago simulado para probar la interfaz.
     if (plan) await store.set(billKey(user.id), { ...bill, plan: plan.id });
     if (pack) await store.incrby(creditsKey(user.id), pack.audits);
+    if (renta) {
+      await store.incrby(rentaCreditsKey(user.id), 1);
+      return `${base}/renta?ok=renta`;
+    }
     return `${base}/?ok=${plan ? "plan" : "pack"}`;
   }
 
@@ -136,6 +144,27 @@ export async function startCheckout(
     return checkout.url!;
   }
 
+  if (renta) {
+    const checkout = await s.checkout.sessions.create({
+      ...common,
+      cancel_url: `${base}/renta`,
+      mode: "payment",
+      ...(bill.customerId ? {} : { customer_creation: "always" as const }),
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "eur",
+            unit_amount: RENTA_PRICE,
+            product_data: { name: "AuditorX · Informe de cálculo de la Renta" },
+          },
+        },
+      ],
+      metadata: { kind: "renta", userId: user.id },
+    });
+    return checkout.url!;
+  }
+
   const checkout = await s.checkout.sessions.create({
     ...common,
     mode: "payment",
@@ -159,13 +188,13 @@ export async function startCheckout(
  * Entrega lo comprado. Se llama desde la redirección de vuelta y desde el
  * webhook; la marca `paid:<id>` garantiza que cada compra se entrega una vez.
  */
-export async function fulfill(checkoutId: string): Promise<"plan" | "pack" | null> {
+export async function fulfill(checkoutId: string): Promise<"plan" | "pack" | "renta" | null> {
   const s = stripe();
   if (!s) return null;
   const checkout = await s.checkout.sessions.retrieve(checkoutId);
   const { kind, userId, pack: packId, plan: planId, email, discount } = checkout.metadata ?? {};
   if (checkout.status !== "complete" || !userId) return null;
-  if (kind !== "plan" && kind !== "pack") return null;
+  if (kind !== "plan" && kind !== "pack" && kind !== "renta") return null;
 
   const first = await store.set(`paid:${checkout.id}`, 1, { nx: true });
   if (!first) return kind;
@@ -173,7 +202,10 @@ export async function fulfill(checkoutId: string): Promise<"plan" | "pack" | nul
   const customerId = typeof checkout.customer === "string" ? checkout.customer : checkout.customer?.id;
   const bill = await billing(userId);
 
-  if (kind === "pack") {
+  if (kind === "renta") {
+    if (checkout.payment_status === "paid") await store.incrby(rentaCreditsKey(userId), 1);
+    await store.set(billKey(userId), { ...bill, customerId: customerId ?? bill.customerId });
+  } else if (kind === "pack") {
     const pack = PACKS.find((p) => p.id === packId);
     if (pack && checkout.payment_status === "paid") await store.incrby(creditsKey(userId), pack.audits);
     await store.set(billKey(userId), { ...bill, customerId: customerId ?? bill.customerId });

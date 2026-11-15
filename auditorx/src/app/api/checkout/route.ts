@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!user) return error(401, "login_required", "Inicia sesión para comprar.");
 
   const body = (await req.json().catch(() => null)) as Purchase | null;
-  if (!body || (body.kind !== "plan" && body.kind !== "pack")) {
+  if (!body || (body.kind !== "plan" && body.kind !== "pack" && body.kind !== "renta")) {
     return error(400, "bad_request", "Compra no válida.");
   }
   try {

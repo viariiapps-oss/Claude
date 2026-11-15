@@ -82,6 +82,57 @@ firmar o pagar) y `revision` (mejorar un currículum o carta de presentación), 
 sus propios títulos en el resultado. Para añadir una categoría basta una línea en `CATEGORY_LIST` y
 su pista en `HINTS`.
 
+## Ajustes
+
+El menú de la cuenta abre «Ajustes» con dos pestañas: **Interfaz** (tema claro, oscuro o automático y
+tamaño del texto; se guarda en el dispositivo) y **Plan y pagos** (plan, uso del mes, auditorías de
+packs, y acceso al portal de Stripe para cambiar tarjeta, ver facturas o cancelar). Quien no tiene
+cuenta llega a los ajustes de interfaz desde el enlace al pie de la página.
+
+## Renta (beta) — `/renta`
+
+Calcula el IRPF a partir de certificados y nóminas y entrega un **informe de cálculo en PDF**. No es
+el Modelo 100, no es un borrador de la AEAT y no presenta nada ante Hacienda.
+
+**Cómo está construido**
+
+| Pieza | Archivo | Qué hace |
+| --- | --- | --- |
+| Reglas por ejercicio | `src/lib/renta/rules.ts` | Escalas, mínimos y límites de 2025 y 2026, cada uno con su norma, enlace al BOE y fecha de consulta |
+| Motor de cálculo | `src/lib/renta/engine.ts` | Funciones puras, sin IA. Devuelve el resultado y cada paso con su fórmula y su norma |
+| Cuestionario | `src/lib/renta/questionnaire.ts` | 15 preguntas (más dos aclaraciones): decide si el caso está cubierto y qué documentos pedir |
+| Lectura de documentos | `src/lib/renta/extract.ts`, `api/renta/extract` | Claude transcribe importes con la cita literal de origen; nunca calcula |
+| Ensamblado | `src/lib/renta/assemble.ts` | Suma nóminas por pagador, detecta duplicados, nóminas que faltan y ejercicios distintos |
+| Informe | `src/lib/renta/pdf.ts` | PDF generado en el navegador |
+| Acceso y pago | `src/lib/renta/access.ts`, `api/renta/access` | Pase de 30 días y 30 lecturas; 5 € con Stripe activo, gratis sin él |
+
+**Qué cubre**: rendimientos del trabajo (varios pagadores, paro, pensiones), intereses, dividendos,
+ganancias y pérdidas de acciones, fondos y cripto (saldo neto ya calculado por la entidad),
+tributación individual y conjunta, hijos y ascendientes, discapacidad, planes de pensiones
+individuales, donativos y la deducción de la D.A. 61.ª. Comunidades: Andalucía, Cataluña, Madrid y
+Comunitat Valenciana.
+
+**Qué no cubre** (el cuestionario lo detecta y no deja continuar): autónomos, alquileres como
+propietario, inmuebles distintos de la vivienda habitual, compraventa de inmuebles, rentas del
+extranjero, cambios de residencia, las otras once comunidades, Ceuta, Melilla y los territorios
+forales. Tampoco aplica deducciones autonómicas, maternidad, familia numerosa ni vivienda: el informe
+lo avisa.
+
+**Privacidad**: el servidor no guarda documentos ni datos fiscales. Los archivos se leen en memoria y
+se descartan; los datos viven en la pestaña del navegador y se borran al descargar el informe, al
+pulsar «Borrar todo» o tras 20 minutos sin actividad (`INACTIVITY_MINUTES`). Solo se anota cuándo se
+cerró cada expediente y cuántos documentos tenía. Los documentos sí pasan por la API de Anthropic para
+su lectura; su conservación depende de las condiciones de esa cuenta.
+
+**Añadir una comunidad o un ejercicio**: copiar la escala y los mínimos del texto consolidado del BOE
+en `rules.ts` (incluida la columna «cuota íntegra») con su fuente y ejecutar `npm test`. Las pruebas
+comprueban que las cuotas acumuladas de cada tabla cuadran con las publicadas y que el motor se niega
+a calcular donde no hay reglas.
+
+```bash
+npm test   # 37 pruebas: casos calculados a mano, escalas, ensamblado y PDF
+```
+
 ## Funciones «próximamente» (fake doors)
 
 Once botones (`COMING_SOON` en `src/lib/plans.ts`) abren un aviso de «en construcción» que pide el
@@ -118,6 +169,7 @@ src/
 │   ├── Pricing.tsx, LoginModal.tsx, ComingSoon.tsx, Modal.tsx, TrafficLight.tsx
 └── lib/
     ├── audit-prompt.ts, audit-schema.ts # prompt y formato de la respuesta
+    ├── renta/                           # motor del IRPF, reglas por ejercicio, cuestionario, PDF
     ├── plans.ts                         # planes, packs y funciones «próximamente»
     ├── auth.ts                          # Auth.js y proveedores
     ├── account.ts                       # plan, uso y créditos de cada usuario

@@ -66,7 +66,16 @@ export function euros(cents: number): string {
  */
 type Feature = { icon: string; label: string; blurb: string; pro?: boolean; choices?: readonly string[] };
 
+/** Precio del informe de cálculo de la renta, en céntimos (pago aparte del plan). */
+export const RENTA_PRICE = 500;
+
 const FEATURE_LIST = {
+  renta: {
+    icon: "🧾",
+    label: "Renta para tu caso",
+    blurb:
+      "Estamos ampliando el cálculo de la renta a más comunidades y a más situaciones: autónomos, alquileres, inmuebles y rentas del extranjero.",
+  },
   exportar: {
     icon: "📥",
     label: "Exportar documento marcado",

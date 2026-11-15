@@ -18,7 +18,7 @@ export function ComingSoonButton({
   const badge = (
     <span
       className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-        f.pro ? "bg-warn text-ink" : "bg-stop text-white"
+        f.pro ? "bg-warn text-[#16171b]" : "bg-stop text-white"
       }`}
     >
       {f.pro ? "Pro" : "Nuevo"}
@@ -28,7 +28,7 @@ export function ComingSoonButton({
     return (
       <button
         onClick={() => onOpen(feature)}
-        className="flex w-full items-center gap-4 rounded-2xl border-2 border-ink bg-ink p-4 text-left text-white shadow-[4px_4px_0_0_var(--color-stop)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-stop)] active:translate-y-0"
+        className="flex w-full items-center gap-4 rounded-2xl border-2 border-ink bg-ink p-4 text-left text-paper shadow-[4px_4px_0_0_var(--color-stop)] transition hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-stop)] active:translate-y-0"
       >
         <span className="text-3xl" aria-hidden>
           {f.icon}
@@ -37,7 +37,7 @@ export function ComingSoonButton({
           <span className="flex items-center gap-2 text-base font-bold">
             {f.label} {badge}
           </span>
-          <span className="mt-0.5 block text-sm text-white/70">
+          <span className="mt-0.5 block text-sm text-paper/70">
             Con lo sospechoso resaltado · {f.choices?.join(", ")}
           </span>
         </span>
@@ -117,7 +117,7 @@ export function ComingSoonModal({
             Tu <strong>{LEAD_DISCOUNT_PERCENT} % de descuento</strong> se aplicará solo al suscribirte con una
             cuenta que use ese mismo correo.
           </p>
-          <button onClick={onClose} className="mt-5 h-12 w-full rounded-xl bg-ink font-semibold text-white">
+          <button onClick={onClose} className="mt-5 h-12 w-full rounded-xl bg-ink font-semibold text-paper">
             Entendido
           </button>
         </div>
@@ -141,7 +141,7 @@ export function ComingSoonModal({
                     aria-checked={choice === c}
                     onClick={() => setChoice(c)}
                     className={`h-10 flex-1 rounded-full text-sm font-semibold transition ${
-                      choice === c ? "bg-ink text-white" : "border border-line"
+                      choice === c ? "bg-ink text-paper" : "border border-line"
                     }`}
                   >
                     {c}

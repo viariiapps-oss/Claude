@@ -12,7 +12,7 @@ const LAMPS: { level: Level; on: string; glow: string }[] = [
 export function TrafficLight({ level }: { level?: Level }) {
   return (
     <div
-      className="inline-flex items-center gap-3 rounded-full bg-ink p-3 sm:gap-4 sm:p-4"
+      className="inline-flex items-center gap-3 rounded-full bg-[#16171b] p-3 sm:gap-4 sm:p-4"
       role="img"
       aria-label={level ? `Semáforo en ${level}` : "Analizando"}
     >

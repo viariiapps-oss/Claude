@@ -107,7 +107,7 @@ export function ResultView({
           <ol className="flex flex-col divide-y divide-line">
             {traps.map((p, i) => (
               <li key={i} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-white">
+                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-paper">
                   {i + 1}
                 </span>
                 <div className="min-w-0">
@@ -181,7 +181,7 @@ export function ResultView({
           </section>
           <button
             onClick={onReset}
-            className="mt-2 h-14 rounded-2xl bg-ink text-base font-semibold text-white transition active:scale-[0.99]"
+            className="mt-2 h-14 rounded-2xl bg-ink text-base font-semibold text-paper transition active:scale-[0.99]"
           >
             Auditar otro documento
           </button>
