@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { ProviderId } from "./auth";
+import type { PlanId } from "./plans";
 
 export const CATEGORIES = ["alquiler", "suministros", "taller", "banco", "otro"] as const;
 export type Category = (typeof CATEGORIES)[number];
@@ -49,14 +51,20 @@ export const AuditSchema = z.object({
 
 export type Audit = z.infer<typeof AuditSchema>;
 
-/** Estado de la cuenta que la API devuelve junto a cada respuesta. */
+/** Estado de la cuenta que la API devuelve al cliente. */
 export type Account = {
-  pro: boolean;
+  user: { email: string; name: string | null } | null;
+  plan: PlanId;
+  /** Auditorías del plan usadas este mes y su límite */
   used: number;
-  /** 0 = ilimitado */
   limit: number;
-  /** Límite mensual del plan Pro (0 = ilimitado), para el texto del paywall */
-  proLimit: number;
-  demoPayments: boolean;
-  yearlyAvailable: boolean;
+  /** Auditorías sueltas compradas en packs (no caducan) */
+  credits: number;
+  /** Total que puede hacer ahora mismo */
+  remaining: number;
+  providers: ProviderId[];
+  /** live = Stripe, demo = simulado (AUDITORX_MOCK), off = sin configurar */
+  payments: "live" | "demo" | "off";
+  /** Tiene pendiente el descuento por haber dejado su correo */
+  discount: boolean;
 };

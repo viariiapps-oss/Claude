@@ -1,26 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { appUrl, stripe } from "@/lib/billing";
-import { readSession, writeSession } from "@/lib/session";
+import { NextResponse, type NextRequest } from "next/server";
+import { currentUser } from "@/lib/auth";
+import { appUrl, portalUrl } from "@/lib/billing";
 
 /** Portal de cliente de Stripe: cancelar, cambiar tarjeta, ver facturas. */
 export async function POST(req: NextRequest) {
-  const session = readSession(req);
-  const s = stripe();
-  const base = appUrl(req.url);
-
-  if (!s) {
-    session.demoPro = false; // en modo simulado, "gestionar" = cancelar
-    return writeSession(NextResponse.json({ url: `${base}/` }), session);
-  }
-  if (!session.customerId) {
+  const user = await currentUser();
+  const url = user ? await portalUrl(user.id, appUrl(req.url)) : null;
+  if (!url) {
     return NextResponse.json(
-      { error: { code: "no_customer", message: "No hay ninguna suscripción en este dispositivo." } },
+      { error: { code: "no_customer", message: "No hay ninguna compra asociada a esta cuenta." } },
       { status: 400 },
     );
   }
-  const portal = await s.billingPortal.sessions.create({
-    customer: session.customerId,
-    return_url: `${base}/`,
-  });
-  return NextResponse.json({ url: portal.url });
+  return NextResponse.json({ url });
 }

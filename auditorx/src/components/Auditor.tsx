@@ -1,10 +1,15 @@
 "use client";
 
+import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CATEGORIES, CATEGORY_LABELS, type Account, type Audit, type Category } from "@/lib/audit-schema";
+import { CATEGORIES, CATEGORY_LABELS, type Account, type Category } from "@/lib/audit-schema";
 import { prepareImage } from "@/lib/image";
-import { Paywall } from "./Paywall";
-import { ResultView } from "./ResultView";
+import { parsePartialJson } from "@/lib/partial-json";
+import { type FeatureId, PLANS } from "@/lib/plans";
+import { ComingSoonButton, ComingSoonModal } from "./ComingSoon";
+import { LoginModal } from "./LoginModal";
+import { Pricing } from "./Pricing";
+import { type PartialAudit, ResultView, levelOf } from "./ResultView";
 import { TrafficLight } from "./TrafficLight";
 
 const ACCEPT = "application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif";
@@ -17,35 +22,47 @@ const LOADING_LINES = [
 ];
 
 type Phase = "idle" | "loading" | "result";
+type Dialog = { kind: "pricing" } | { kind: "login" } | { kind: "soon"; feature: FeatureId } | null;
+
+const LANDING_DOORS: FeatureId[] = ["whatsapp", "alertas", "historial", "familia"];
+const RETURN_NOTICES: Record<string, string> = {
+  plan: "¡Listo! Tu suscripción ya está activa.",
+  pack: "¡Listo! Tus auditorías ya están en tu cuenta.",
+  "0": "No se pudo confirmar el pago. Si te han cobrado, recarga la página en un minuto.",
+};
 
 export function Auditor() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState<Category>("alquiler");
-  const [audit, setAudit] = useState<Audit | null>(null);
+  const [audit, setAudit] = useState<PartialAudit | null>(null);
+  const [streaming, setStreaming] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [dragging, setDragging] = useState(false);
-  const [paywall, setPaywall] = useState(false);
+  const [dialog, setDialog] = useState<Dialog>(null);
   const [line, setLine] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
     fetch("/api/me")
       .then((r) => r.json())
-      .then((d) => setAccount(d.account))
+      .then((d: { account: Account }) => {
+        setAccount(d.account);
+        // Tras iniciar sesión para comprar, se vuelve a abrir la ventana de precios.
+        if (d.account.user && sessionStorage.getItem("ax_after_login") === "pricing") {
+          setDialog({ kind: "pricing" });
+        }
+        sessionStorage.removeItem("ax_after_login");
+      })
       .catch(() => {});
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("pro")) {
-      setNotice(
-        params.get("pro") === "1"
-          ? "¡Listo! Ya tienes AuditorX Pro."
-          : "No se pudo confirmar el pago. Si te han cobrado, recarga la página en un minuto.",
-      );
-      window.history.replaceState(null, "", window.location.pathname);
-    }
+    if (params.has("ok")) setNotice(RETURN_NOTICES[params.get("ok")!] ?? "");
+    else if (params.get("login") === "sent") setNotice("Te hemos enviado un enlace de acceso. Revisa tu correo.");
+    else if (params.has("error")) setError("No se pudo iniciar sesión. Inténtalo de nuevo.");
+    if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
   useEffect(() => {
@@ -64,32 +81,89 @@ export function Auditor() {
     setFile(f);
   }, []);
 
-  const remaining = account && account.limit > 0 ? Math.max(0, account.limit - account.used) : null;
-  const outOfQuota = remaining === 0;
+  const outOfQuota = account?.remaining === 0;
+  const openPricing = () => setDialog({ kind: "pricing" });
+  const openSoon = (feature: FeatureId) => setDialog({ kind: "soon", feature });
 
   async function submit() {
     if (!file) return;
-    if (outOfQuota && account && !account.pro) return setPaywall(true);
+    if (outOfQuota) return openPricing();
     setPhase("loading");
     setError("");
+    setAudit(null);
+
+    const stop = (message: string) => {
+      setPhase("idle");
+      setStreaming(false);
+      setAudit(null);
+      setError(message);
+    };
+
     try {
       const body = new FormData();
       body.set("file", await prepareImage(file));
       body.set("category", category);
       const res = await fetch("/api/audit", { method: "POST", body });
-      const data = await res.json().catch(() => ({}));
-      if (data.account) setAccount(data.account);
-      if (!res.ok) {
-        setPhase("idle");
-        if (data.error?.code === "quota_exceeded" && !data.account?.pro) return setPaywall(true);
-        return setError(data.error?.message || "Algo ha fallado. Inténtalo de nuevo.");
+
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        if (data.account) setAccount(data.account);
+        if (data.error?.code === "quota_exceeded") {
+          setPhase("idle");
+          return openPricing();
+        }
+        return stop(data.error?.message || "Algo ha fallado. Inténtalo de nuevo.");
       }
-      setAudit(data.audit);
-      setPhase("result");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // El análisis llega en líneas JSON: trozos (`d`) y un evento final.
+      setStreaming(true);
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      let pending = "";
+      let json = "";
+      let finished = false;
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        pending += value;
+        const lines = pending.split("\n");
+        pending = lines.pop() ?? "";
+        let grew = false;
+        for (const line of lines) {
+          if (!line) continue;
+          const event = JSON.parse(line);
+          if (event.d) {
+            json += event.d;
+            grew = true;
+            continue;
+          }
+          if (event.account) setAccount(event.account);
+          finished = true;
+          if (event.error) {
+            if (event.refund) {
+              await fetch("/api/refund", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ token: event.refund }),
+              }).catch(() => {});
+            }
+            return stop(event.error.message);
+          }
+          setAudit(event.audit);
+          setPhase("result");
+          setStreaming(false);
+        }
+        if (grew && !finished) {
+          const partial = parsePartialJson(json) as PartialAudit | null;
+          // No se enseña nada hasta saber el color: evita mostrar un documento ilegible.
+          if (levelOf(partial)) {
+            setAudit(partial);
+            setPhase("result");
+          }
+        }
+      }
+      if (!finished) stop("La conexión se cortó a mitad del análisis. Inténtalo de nuevo.");
     } catch {
-      setPhase("idle");
-      setError("Sin conexión. Revisa tu red e inténtalo de nuevo.");
+      stop("Sin conexión. Revisa tu red e inténtalo de nuevo.");
     }
   }
 
@@ -97,33 +171,69 @@ export function Auditor() {
     const res = await fetch("/api/portal", { method: "POST" });
     const data = await res.json().catch(() => ({}));
     if (data.url) window.location.href = data.url;
+    else setError(data.error?.message || "No se pudo abrir la gestión de tu cuenta.");
   }
 
   function reset() {
     setAudit(null);
     setFile(null);
     setPhase("idle");
+    window.scrollTo({ top: 0 });
   }
+
+  const planName = PLANS.find((p) => p.id === account?.plan)?.name;
 
   return (
     <>
-      <nav className="flex items-center justify-between">
+      <nav className="flex items-center justify-between gap-2">
         <span className="text-lg font-black tracking-tight">
           Auditor<span className="text-stop">X</span>
         </span>
-        {account &&
-          (account.pro ? (
-            <button onClick={manage} className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white">
-              Pro · gestionar
-            </button>
-          ) : (
+        {account && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setPaywall(true)}
+              onClick={openPricing}
               className="rounded-full border border-line bg-card px-3 py-1.5 text-xs font-medium"
             >
-              {remaining} gratis · <span className="font-semibold">Hazte Pro</span>
+              {planName && <span className="font-bold">{planName} · </span>}
+              {account.remaining} {account.remaining === 1 ? "auditoría" : "auditorías"} ·{" "}
+              <span className="font-semibold text-stop">Más</span>
             </button>
-          ))}
+            {account.user ? (
+              <details className="relative">
+                <summary
+                  aria-label="Tu cuenta"
+                  className="flex size-8 cursor-pointer list-none items-center justify-center rounded-full bg-ink text-xs font-bold uppercase text-white [&::-webkit-details-marker]:hidden"
+                >
+                  {account.user.email[0]}
+                </summary>
+                <div className="absolute right-0 z-10 mt-2 w-56 rounded-2xl border border-line bg-card p-2 text-sm shadow-lg">
+                  <p className="truncate px-3 py-2 text-xs text-muted">{account.user.email}</p>
+                  {account.plan !== "free" && (
+                    <button onClick={manage} className="block w-full rounded-lg px-3 py-2 text-left hover:bg-paper">
+                      Gestionar suscripción
+                    </button>
+                  )}
+                  <button
+                    onClick={() => signOut({ redirectTo: "/" })}
+                    className="block w-full rounded-lg px-3 py-2 text-left hover:bg-paper"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              </details>
+            ) : (
+              account.providers.length > 0 && (
+                <button
+                  onClick={() => setDialog({ kind: "login" })}
+                  className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"
+                >
+                  Entrar
+                </button>
+              )
+            )}
+          </div>
+        )}
       </nav>
 
       {notice && (
@@ -134,7 +244,7 @@ export function Auditor() {
 
       {phase === "result" && audit ? (
         <div className="mt-4">
-          <ResultView audit={audit} onReset={reset} />
+          <ResultView audit={audit} streaming={streaming} onReset={reset} onFeature={openSoon} />
         </div>
       ) : phase === "loading" ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-8 py-24 text-center" aria-live="polite">
@@ -266,16 +376,47 @@ export function Auditor() {
             >
               Auditar documento
             </button>
-            {outOfQuota && account?.pro && (
+            {outOfQuota && (
               <p className="mt-3 text-center text-sm text-muted">
-                Has usado tus {account.limit} auditorías de este mes. Se renuevan el día 1.
+                Te has quedado sin auditorías este mes.{" "}
+                <button onClick={openPricing} className="font-semibold text-stop underline underline-offset-4">
+                  Consigue más
+                </button>
               </p>
             )}
           </div>
+
+          <section className="mt-8">
+            <h2 className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted">
+              Próximamente en AuditorX
+            </h2>
+            <div className="flex flex-wrap justify-center gap-2">
+              {LANDING_DOORS.map((f) => (
+                <ComingSoonButton key={f} feature={f} onOpen={openSoon} />
+              ))}
+            </div>
+          </section>
         </>
       )}
 
-      {paywall && account && <Paywall account={account} onClose={() => setPaywall(false)} />}
+      {account && dialog?.kind === "pricing" && (
+        <Pricing
+          account={account}
+          onClose={() => setDialog(null)}
+          onLogin={() => {
+            sessionStorage.setItem("ax_after_login", "pricing");
+            setDialog({ kind: "login" });
+          }}
+        />
+      )}
+      {account && dialog?.kind === "login" && <LoginModal account={account} onClose={() => setDialog(null)} />}
+      {dialog?.kind === "soon" && (
+        <ComingSoonModal
+          feature={dialog.feature}
+          defaultEmail={account?.user?.email ?? ""}
+          onClose={() => setDialog(null)}
+        />
+      )}
     </>
   );
 }

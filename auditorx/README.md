@@ -1,9 +1,9 @@
 # AuditorX
 
-Sube un contrato, factura o presupuesto (PDF o foto) y recibe en segundos un semáforo de riesgo
-con las trampas detectadas, la comparación con lo legal y un plan de acción.
+Sube un contrato, factura o presupuesto (PDF o foto) y recibe un semáforo de riesgo con las trampas
+detectadas, la comparación con lo legal y un plan de acción.
 
-Next.js 16 (App Router) · Tailwind 4 · Claude Haiku 5.5 · Stripe Checkout. Sin base de datos.
+Next.js 16 (App Router) · Tailwind 4 · Claude Haiku 5.5 · Auth.js · Stripe Checkout · Upstash Redis.
 
 ## Arrancar
 
@@ -14,84 +14,113 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-Para ver la interfaz sin ninguna clave: `AUDITORX_MOCK=1 npm run dev` (devuelve un análisis de ejemplo
-y el pago es simulado).
+Para probarlo todo sin ninguna clave: `AUDITORX_MOCK=1 npm run dev` (análisis de ejemplo, login con
+cualquier correo y pagos simulados).
 
-## Variables de entorno
+## Qué activa cada variable
 
-| Variable | Obligatoria | Para qué |
+La app funciona por capas: cada bloque de `.env.example` enciende una parte y el resto sigue
+funcionando sin él.
+
+| Bloque | Variables | Sin ellas |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | Sí | Clave de la API de Anthropic ([console.anthropic.com](https://console.anthropic.com/settings/keys)). |
-| `SESSION_SECRET` | Sí en producción | Firma la cookie de sesión. `openssl rand -hex 32`. |
-| `STRIPE_SECRET_KEY` | Para cobrar | Clave secreta de Stripe (`sk_test_…` / `sk_live_…`). Sin ella, el pago es simulado. |
-| `STRIPE_PRICE_MONTHLY` | Para cobrar | ID del precio recurrente mensual (0,50 €). |
-| `STRIPE_PRICE_YEARLY` | No | ID del precio anual (4,99 €). Si falta, solo se ofrece el mensual. |
-| `APP_URL` | Recomendada | URL pública para las redirecciones de Stripe. |
-| `FREE_MONTHLY_LIMIT` | No | Auditorías gratis al mes (por defecto 2). |
-| `PRO_MONTHLY_LIMIT` | No | Auditorías Pro al mes (por defecto 15; `0` = ilimitadas). |
-| `ANTHROPIC_MODEL` | No | Por defecto `claude-haiku-5-5`. |
-| `AUDITORX_MOCK` | No | `1` = análisis de ejemplo sin llamar a Claude. |
+| Análisis | `ANTHROPIC_API_KEY`, `SESSION_SECRET` | No arranca |
+| Base de datos | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Solo visitantes anónimos con 2 auditorías gratis; no hay login, compras ni captura de correos |
+| Login | `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `AUTH_APPLE_*`, `AUTH_RESEND_KEY` + `AUTH_EMAIL_FROM` | No aparece el botón de ese proveedor |
+| Pagos | `STRIPE_SECRET_KEY` (+ `STRIPE_WEBHOOK_SECRET`) | La ventana de precios se ve, pero sin botón de compra |
+| Informe de interesados | `ADMIN_SECRET` | `/api/admin/leads` responde 401 |
 
-### Configurar Stripe
+### Base de datos
 
-1. En el panel de Stripe: **Productos → Añadir producto** "AuditorX Pro".
-2. Añade dos precios recurrentes en EUR: 0,50 €/mes y 4,99 €/año. Copia sus IDs (`price_…`).
-3. Activa el **Portal de clientes** (Configuración → Facturación) para que puedan cancelar.
+En Vercel: **Storage → Create Database → Upstash for Redis** y conéctala al proyecto. Las variables
+`KV_REST_API_*` se añaden solas.
 
-No hace falta la clave publicable ni webhook: se usa Checkout alojado por Stripe y el estado de la
-suscripción se consulta directamente a Stripe (cacheado una hora).
+### Inicio de sesión
+
+URL de retorno que pide cada proveedor: `https://TU-DOMINIO/api/auth/callback/<proveedor>`.
+
+- **Google**: Google Cloud Console → APIs y servicios → Credenciales → ID de cliente OAuth (aplicación web).
+- **GitHub**: Settings → Developer settings → OAuth Apps → New OAuth App.
+- **Apple**: requiere el Apple Developer Program (de pago). `AUTH_APPLE_ID` es el Services ID y
+  `AUTH_APPLE_SECRET` un JWT firmado con tu clave, que caduca como máximo a los 6 meses.
+- **Correo**: cuenta en resend.com con un dominio propio verificado (no sirve `*.vercel.app`). El usuario
+  recibe un enlace y entra sin contraseña.
+
+### Pagos
+
+Solo hace falta `STRIPE_SECRET_KEY`: los productos y precios se definen en `src/lib/plans.ts` y se
+envían a Stripe en cada compra. Activa el **Portal de clientes** en Stripe para que puedan cancelar.
+El webhook es opcional: entrega la compra aunque el usuario cierre la pestaña antes de volver.
+
+## Precios (`src/lib/plans.ts`)
+
+| Plan | Auditorías/mes | Mensual | Anual |
+| --- | --- | --- | --- |
+| Gratis | 2 | — | — |
+| Pro | 15 | 0,50 € | 4,99 € |
+| Plus | 25 | 0,99 € | 8,99 € |
+| Premium | 35 | 1,49 € | 12,99 € |
+| Max | 50 | 1,99 € | 17,99 € |
+
+Packs de pago único (no caducan): 10 → 0,50 € · 25 → 0,99 € · 50 → 1,79 € · 100 → 2,99 €.
+
+Stripe no admite cobros inferiores a 0,50 €, por eso no hay pack de 0,30 € y el descuento del 30 % no
+se aplica al plan Pro mensual.
+
+## Funciones «próximamente» (fake doors)
+
+Ocho botones (`COMING_SOON` en `src/lib/plans.ts`) abren un aviso de «en construcción» que pide el
+correo a cambio de un 30 % de descuento en la primera suscripción. El descuento se aplica solo en el
+checkout cuando la cuenta usa ese mismo correo.
+
+Para ver qué funciones interesan más:
+
+```bash
+curl -H "Authorization: Bearer $ADMIN_SECRET" https://TU-DOMINIO/api/admin/leads            # clics y correos por función
+curl -H "Authorization: Bearer $ADMIN_SECRET" "https://TU-DOMINIO/api/admin/leads?format=csv" # lista de correos
+```
 
 ## Estructura
 
 ```
-auditorx/
-├── .env.example
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx                      # Pantalla única
-│   │   ├── globals.css                   # Tokens de Tailwind y animaciones
-│   │   └── api/
-│   │       ├── audit/route.ts            # Recibe el archivo → Claude → JSON del análisis
-│   │       ├── me/route.ts               # Estado de la cuenta (plan, uso)
-│   │       ├── checkout/route.ts         # Crea la sesión de Stripe Checkout
-│   │       ├── checkout/confirm/route.ts # Verifica el pago y activa Pro
-│   │       └── portal/route.ts           # Portal de cliente de Stripe
-│   ├── components/
-│   │   ├── Auditor.tsx                   # Landing, subida, categoría, carga
-│   │   ├── ResultView.tsx                # Semáforo + 4 secciones
-│   │   ├── TrafficLight.tsx
-│   │   └── Paywall.tsx
-│   └── lib/
-│       ├── audit-prompt.ts               # Prompt de sistema del auditor
-│       ├── audit-schema.ts               # Esquema Zod de la respuesta
-│       ├── billing.ts                    # Stripe, plan y límites
-│       ├── session.ts                    # Cookie firmada (HMAC) con el contador
-│       ├── rate-limit.ts                 # Freno por IP en memoria
-│       ├── image.ts                      # Compresión de fotos en el navegador
-│       └── mock.ts
+src/
+├── app/
+│   ├── page.tsx, layout.tsx, globals.css
+│   └── api/
+│       ├── audit/route.ts               # archivo → Claude (streaming) → análisis
+│       ├── refund/route.ts              # devuelve la auditoría gratis si el análisis falla
+│       ├── me/route.ts                  # estado de la cuenta
+│       ├── auth/[...nextauth]/route.ts  # inicio de sesión
+│       ├── checkout/route.ts            # crea la compra en Stripe
+│       ├── checkout/confirm/route.ts    # entrega la compra al volver
+│       ├── stripe/webhook/route.ts      # entrega y cancelaciones (opcional)
+│       ├── portal/route.ts              # portal de cliente de Stripe
+│       ├── interest/route.ts            # clics y correos de «próximamente»
+│       └── admin/leads/route.ts         # informe de interesados
+├── components/
+│   ├── Auditor.tsx                      # pantalla principal
+│   ├── ResultView.tsx                   # semáforo + 4 secciones
+│   ├── Pricing.tsx, LoginModal.tsx, ComingSoon.tsx, Modal.tsx, TrafficLight.tsx
+└── lib/
+    ├── audit-prompt.ts, audit-schema.ts # prompt y formato de la respuesta
+    ├── plans.ts                         # planes, packs y funciones «próximamente»
+    ├── auth.ts                          # Auth.js y proveedores
+    ├── account.ts                       # plan, uso y créditos de cada usuario
+    ├── billing.ts                       # Stripe
+    ├── leads.ts                         # correos de interesados
+    ├── store.ts                         # Redis (o memoria en desarrollo)
+    ├── session.ts                       # cookie firmada del visitante anónimo
+    └── partial-json.ts, image.ts, rate-limit.ts, mock.ts
 ```
-
-## Cómo funciona
-
-- **Análisis**: `POST /api/audit` valida el archivo, lo envía a Claude como bloque `document` (PDF) o
-  `image`, y exige la respuesta con salida estructurada (`output_config.format` + Zod), así que el JSON
-  siempre encaja con la interfaz. El archivo solo vive en memoria durante la petición.
-- **Velocidad**: las fotos se reducen a 2000 px en el navegador antes de subir y Claude se llama con
-  `effort: "low"`.
-- **Límites**: el contador mensual va en una cookie `httpOnly` firmada. La cuota se comprueba en el
-  servidor antes de gastar tokens y solo cuentan los análisis entregados.
-- **Pro**: tras el pago, Stripe redirige a `/api/checkout/confirm`, que verifica la sesión contra la
-  API de Stripe y guarda el `customerId` en la cookie.
 
 ## Limitaciones conocidas
 
-- **Sin cuentas de usuario**: Pro va ligado al navegador donde se pagó. Si el usuario borra las cookies
-  o cambia de dispositivo, pierde el acceso (y el contador gratuito se reinicia). El siguiente paso
-  natural es un login por enlace mágico + webhook de Stripe con una base de datos pequeña.
-- **Rate limit en memoria**: en serverless con varias instancias, sustitúyelo por Upstash/KV.
-- **Tamaño de subida**: el límite es 10 MB, pero Vercel corta el cuerpo de las funciones en 4,5 MB.
-  Las fotos se comprimen solas; los PDF grandes necesitarían subida directa a almacenamiento.
-- **Márgenes**: Stripe cobra una comisión fija por transacción que se come buena parte de 0,50 €.
-  El plan anual es el que sale rentable; por eso aparece preseleccionado.
+- **Cambio de plan**: para pasar de un plan a otro hay que cancelar el actual desde «Gestionar» y
+  suscribirse de nuevo.
+- **Visitantes sin cuenta**: su contador gratuito va en una cookie; borrarla lo reinicia.
+- **Rate limit en memoria**: protege de ráfagas por instancia, no es un límite global.
+- **Tamaño de subida**: Vercel corta el cuerpo de las funciones en 4,5 MB. Las fotos se comprimen
+  solas; los PDF grandes no pasan.
+- **Textos legales**: la app recoge correos y documentos con datos personales y no incluye política de
+  privacidad, aviso legal ni condiciones. Hay que añadirlos antes de captar usuarios reales.
 - El análisis es orientativo y está enfocado a normativa española; no sustituye a un abogado.
