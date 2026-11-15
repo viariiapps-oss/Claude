@@ -12,10 +12,11 @@ import {
 } from "@/lib/audit-schema";
 import { prepareImage } from "@/lib/image";
 import { parsePartialJson } from "@/lib/partial-json";
-import { type FeatureId, PLANS } from "@/lib/plans";
+import { type FeatureId, PLANS, RENTA_PRICE, euros } from "@/lib/plans";
 import { ComingSoonButton, ComingSoonModal } from "./ComingSoon";
 import { type AuthMode, LoginModal } from "./LoginModal";
 import { Pricing } from "./Pricing";
+import { Settings, type SettingsTab } from "./Settings";
 import { type PartialAudit, ResultView, levelOf } from "./ResultView";
 import { TrafficLight } from "./TrafficLight";
 
@@ -29,7 +30,7 @@ const LOADING_LINES = [
 ];
 
 type Phase = "idle" | "loading" | "result";
-type Dialog = { kind: "pricing" } | { kind: "login"; mode: AuthMode } | { kind: "soon"; feature: FeatureId } | null;
+type Dialog = { kind: "pricing" } | { kind: "login"; mode: AuthMode } | { kind: "soon"; feature: FeatureId } | { kind: "settings"; tab: SettingsTab } | null;
 
 const LANDING_DOORS: FeatureId[] = ["seguimiento", "alertas", "historial", "familia"];
 const RETURN_NOTICES: Record<string, string> = {
@@ -177,13 +178,6 @@ export function Auditor() {
     }
   }
 
-  async function manage() {
-    const res = await fetch("/api/portal", { method: "POST" });
-    const data = await res.json().catch(() => ({}));
-    if (data.url) window.location.href = data.url;
-    else setError(data.error?.message || "No se pudo abrir la gestión de tu cuenta.");
-  }
-
   function reset() {
     setAudit(null);
     setFile(null);
@@ -195,7 +189,7 @@ export function Auditor() {
 
   return (
     <>
-      <nav className="flex items-center justify-between gap-2">
+      <nav className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-lg font-black tracking-tight">
           Auditor<span className="text-stop">X</span>
         </span>
@@ -203,7 +197,7 @@ export function Auditor() {
           <div className="flex items-center gap-2">
             <button
               onClick={openPricing}
-              className="rounded-full border border-line bg-card px-3 py-1.5 text-xs font-medium"
+              className="whitespace-nowrap rounded-full border border-line bg-card px-3 py-1.5 text-xs font-medium"
             >
               {planName && <span className="font-bold">{planName} · </span>}
               {account.remaining} {account.remaining === 1 ? "auditoría" : "auditorías"}
@@ -213,17 +207,24 @@ export function Auditor() {
               <details className="relative">
                 <summary
                   aria-label="Tu cuenta"
-                  className="flex size-8 cursor-pointer list-none items-center justify-center rounded-full bg-ink text-xs font-bold uppercase text-white [&::-webkit-details-marker]:hidden"
+                  className="flex size-8 cursor-pointer list-none items-center justify-center rounded-full bg-ink text-xs font-bold uppercase text-paper [&::-webkit-details-marker]:hidden"
                 >
                   {account.user.email[0]}
                 </summary>
                 <div className="absolute right-0 z-10 mt-2 w-56 rounded-2xl border border-line bg-card p-2 text-sm shadow-lg">
                   <p className="truncate px-3 py-2 text-xs text-muted">{account.user.email}</p>
-                  {account.plan !== "free" && (
-                    <button onClick={manage} className="block w-full rounded-lg px-3 py-2 text-left hover:bg-paper">
-                      Gestionar suscripción
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setDialog({ kind: "settings", tab: "interface" })}
+                    className="block w-full rounded-lg px-3 py-2 text-left hover:bg-paper"
+                  >
+                    Ajustes de interfaz
+                  </button>
+                  <button
+                    onClick={() => setDialog({ kind: "settings", tab: "billing" })}
+                    className="block w-full rounded-lg px-3 py-2 text-left hover:bg-paper"
+                  >
+                    Plan y pagos
+                  </button>
                   <button
                     onClick={() => signOut({ redirectTo: "/" })}
                     className="block w-full rounded-lg px-3 py-2 text-left hover:bg-paper"
@@ -243,7 +244,7 @@ export function Auditor() {
                   </button>
                   <button
                     onClick={() => setDialog({ kind: "login", mode: "register" })}
-                    className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-white"
+                    className="rounded-full bg-ink px-3 py-1.5 text-xs font-semibold text-paper"
                   >
                     Registrarse
                   </button>
@@ -328,7 +329,7 @@ export function Auditor() {
                   <div className="flex flex-col justify-center gap-2 sm:flex-row">
                     <button
                       onClick={() => fileInput.current?.click()}
-                      className="h-12 rounded-xl bg-ink px-5 font-semibold text-white"
+                      className="h-12 rounded-xl bg-ink px-5 font-semibold text-paper"
                     >
                       Elegir archivo
                     </button>
@@ -377,7 +378,7 @@ export function Auditor() {
                     setCategory(CATEGORY_LIST.find((c) => c.group === g)!.id);
                   }}
                   className={`h-9 rounded-full px-3 text-sm font-semibold transition ${
-                    group === g ? "bg-ink text-white" : "text-muted hover:bg-paper"
+                    group === g ? "bg-ink text-paper" : "text-muted hover:bg-paper"
                   }`}
                 >
                   {g}
@@ -423,6 +424,25 @@ export function Auditor() {
             )}
           </div>
 
+          <section className="mt-6 rounded-3xl border-2 border-ink bg-card p-5 shadow-[4px_4px_0_0_var(--color-warn)]">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-black tracking-tight">🧾 Renta</h2>
+              <span className="rounded-full bg-warn px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#16171b]">
+                En proceso
+              </span>
+            </div>
+            <p className="mt-2 text-[15px] leading-relaxed">
+              Sube tus nóminas y te preparamos el borrador de tu declaración de la renta, casilla a casilla.
+            </p>
+            <p className="mt-1 text-sm text-muted">{euros(RENTA_PRICE)} por declaración, aparte de tu plan.</p>
+            <button
+              onClick={() => openSoon("renta")}
+              className="mt-4 h-12 w-full rounded-xl bg-ink font-semibold text-paper transition active:scale-[0.99]"
+            >
+              Subir mis nóminas
+            </button>
+          </section>
+
           <section className="mt-8">
             <h2 className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-muted">
               Próximamente en AuditorX
@@ -436,6 +456,13 @@ export function Auditor() {
         </>
       )}
 
+      <button
+        onClick={() => setDialog({ kind: "settings", tab: "interface" })}
+        className="mx-auto mt-auto pt-10 text-xs text-muted underline underline-offset-4"
+      >
+        Ajustes de interfaz
+      </button>
+
       {account && dialog?.kind === "pricing" && (
         <Pricing
           account={account}
@@ -448,6 +475,14 @@ export function Auditor() {
       )}
       {account && dialog?.kind === "login" && (
         <LoginModal account={account} initialMode={dialog.mode} onClose={() => setDialog(null)} />
+      )}
+      {account && dialog?.kind === "settings" && (
+        <Settings
+          account={account}
+          initialTab={dialog.tab}
+          onClose={() => setDialog(null)}
+          onPricing={openPricing}
+        />
       )}
       {dialog?.kind === "soon" && (
         <ComingSoonModal

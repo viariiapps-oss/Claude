@@ -82,6 +82,19 @@ firmar o pagar) y `revision` (mejorar un currículum o carta de presentación), 
 sus propios títulos en el resultado. Para añadir una categoría basta una línea en `CATEGORY_LIST` y
 su pista en `HINTS`.
 
+## Ajustes
+
+El menú de la cuenta abre «Ajustes» con dos pestañas: **Interfaz** (tema claro, oscuro o automático y
+tamaño del texto; se guarda en el dispositivo) y **Plan y pagos** (plan, uso del mes, auditorías de
+packs, y acceso al portal de Stripe para cambiar tarjeta, ver facturas o cancelar). Quien no tiene
+cuenta llega a los ajustes de interfaz desde el enlace al pie de la página.
+
+## Renta (en proceso)
+
+La tarjeta «Renta» de la portada anuncia el borrador de la declaración a partir de las nóminas, a
+5 € por declaración (`RENTA_PRICE`). Todavía no existe: es una función «próximamente» más (`renta`)
+y solo recoge el correo de quien se interesa.
+
 ## Funciones «próximamente» (fake doors)
 
 Once botones (`COMING_SOON` en `src/lib/plans.ts`) abren un aviso de «en construcción» que pide el

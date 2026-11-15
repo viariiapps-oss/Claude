@@ -69,7 +69,7 @@ export function LoginModal({
   }
 
   const tab = (on: boolean) =>
-    `h-9 flex-1 rounded-full text-sm font-semibold transition ${on ? "bg-ink text-white" : "text-muted"}`;
+    `h-9 flex-1 rounded-full text-sm font-semibold transition ${on ? "bg-ink text-paper" : "text-muted"}`;
   const input = "h-12 rounded-xl border border-line bg-card px-4 outline-none focus:border-ink";
 
   if (account.providers.length === 0) {
@@ -146,7 +146,7 @@ export function LoginModal({
             {error}
           </p>
         )}
-        <button disabled={busy} className="h-12 rounded-xl bg-ink font-semibold text-white disabled:opacity-60">
+        <button disabled={busy} className="h-12 rounded-xl bg-ink font-semibold text-paper disabled:opacity-60">
           {busy ? "Un momento…" : registering ? "Crear cuenta" : "Entrar"}
         </button>
       </form>

@@ -29,6 +29,31 @@
   }
 }
 
+/* Tema oscuro: elegido a mano, o el del sistema si no se ha elegido ninguno. */
+:root[data-theme="dark"] {
+  --color-paper: #111215;
+  --color-card: #1a1c21;
+  --color-ink: #f2f0e9;
+  --color-muted: #a09e96;
+  --color-line: #30333a;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]),
+  :root[data-theme="system"] {
+    --color-paper: #111215;
+    --color-card: #1a1c21;
+    --color-ink: #f2f0e9;
+    --color-muted: #a09e96;
+    --color-line: #30333a;
+    color-scheme: dark;
+  }
+}
+
+:root[data-size="large"] {
+  font-size: 112.5%;
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);

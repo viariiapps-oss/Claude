@@ -66,7 +66,7 @@ export default function Admin() {
             onChange={(e) => setKey(e.target.value)}
             className="h-12 rounded-xl border border-line bg-card px-4 outline-none focus:border-ink"
           />
-          <button className="h-12 rounded-xl bg-ink font-semibold text-white">Ver datos</button>
+          <button className="h-12 rounded-xl bg-ink font-semibold text-paper">Ver datos</button>
           {error && <p className="text-sm text-stop">{error}</p>}
         </form>
       ) : (
@@ -107,7 +107,7 @@ export default function Admin() {
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
               Correos ({report.leads.length})
             </h2>
-            <button onClick={downloadCsv} className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white">
+            <button onClick={downloadCsv} className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper">
               Descargar CSV
             </button>
           </div>

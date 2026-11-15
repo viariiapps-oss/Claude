@@ -66,7 +66,16 @@ export function euros(cents: number): string {
  */
 type Feature = { icon: string; label: string; blurb: string; pro?: boolean; choices?: readonly string[] };
 
+/** Precio previsto del borrador de la renta, en céntimos (pago aparte del plan). */
+export const RENTA_PRICE = 500;
+
 const FEATURE_LIST = {
+  renta: {
+    icon: "🧾",
+    label: "Tu renta a partir de tus nóminas",
+    blurb:
+      "Subes tus nóminas del año y te preparamos el borrador de tu declaración de la renta, con cada casilla explicada. Costará 5 € por declaración, aparte de tu plan.",
+  },
   exportar: {
     icon: "📥",
     label: "Exportar documento marcado",
