@@ -2,7 +2,14 @@
 
 import { signOut } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CATEGORIES, CATEGORY_LABELS, type Account, type Category } from "@/lib/audit-schema";
+import {
+  type Account,
+  CATEGORY_LIST,
+  type Category,
+  GROUPS,
+  type Group,
+  modeOf,
+} from "@/lib/audit-schema";
 import { prepareImage } from "@/lib/image";
 import { parsePartialJson } from "@/lib/partial-json";
 import { type FeatureId, PLANS } from "@/lib/plans";
@@ -34,6 +41,7 @@ const RETURN_NOTICES: Record<string, string> = {
 export function Auditor() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [file, setFile] = useState<File | null>(null);
+  const [group, setGroup] = useState<Group>("Vivienda");
   const [category, setCategory] = useState<Category>("alquiler");
   const [audit, setAudit] = useState<PartialAudit | null>(null);
   const [streaming, setStreaming] = useState(false);
@@ -244,7 +252,7 @@ export function Auditor() {
 
       {phase === "result" && audit ? (
         <div className="mt-4">
-          <ResultView audit={audit} streaming={streaming} onReset={reset} onFeature={openSoon} />
+          <ResultView audit={audit} mode={modeOf(category)} streaming={streaming} onReset={reset} onFeature={openSoon} />
         </div>
       ) : phase === "loading" ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-8 py-24 text-center" aria-live="polite">
@@ -268,7 +276,7 @@ export function Auditor() {
               Descubre las trampas ocultas <span className="text-stop">antes de firmar</span>
             </h1>
             <p className="mx-auto mt-4 max-w-md text-balance text-base text-muted sm:text-lg">
-              Sube tu contrato, factura o presupuesto. En segundos sabrás si es verde, amarillo o rojo, y qué hacer.
+              Sube tu contrato, factura, presupuesto o currículum. En segundos sabrás si es verde, amarillo o rojo, y qué hacer.
             </p>
           </header>
 
@@ -347,18 +355,37 @@ export function Auditor() {
               />
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2" role="radiogroup" aria-label="Tipo de documento">
-              {CATEGORIES.map((c) => (
+            <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-muted">¿Qué es?</p>
+            <div className="mt-2 flex flex-wrap gap-1" role="tablist" aria-label="Apartado">
+              {GROUPS.map((g) => (
                 <button
-                  key={c}
-                  role="radio"
-                  aria-checked={category === c}
-                  onClick={() => setCategory(c)}
-                  className={`h-10 rounded-full px-4 text-sm font-medium transition ${
-                    category === c ? "bg-ink text-white" : "border border-line bg-card"
+                  key={g}
+                  role="tab"
+                  aria-selected={group === g}
+                  onClick={() => {
+                    setGroup(g);
+                    setCategory(CATEGORY_LIST.find((c) => c.group === g)!.id);
+                  }}
+                  className={`h-9 rounded-full px-3 text-sm font-semibold transition ${
+                    group === g ? "bg-ink text-white" : "text-muted hover:bg-paper"
                   }`}
                 >
-                  {CATEGORY_LABELS[c]}
+                  {g}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Tipo de documento">
+              {CATEGORY_LIST.filter((c) => c.group === group).map((c) => (
+                <button
+                  key={c.id}
+                  role="radio"
+                  aria-checked={category === c.id}
+                  onClick={() => setCategory(c.id)}
+                  className={`h-10 rounded-full px-4 text-sm font-medium transition ${
+                    category === c.id ? "border-2 border-ink bg-paper font-semibold" : "border border-line bg-card"
+                  }`}
+                >
+                  {c.label}
                 </button>
               ))}
             </div>

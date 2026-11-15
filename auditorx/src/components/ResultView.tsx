@@ -1,4 +1,4 @@
-import type { Audit } from "@/lib/audit-schema";
+import type { Audit, Mode } from "@/lib/audit-schema";
 import type { FeatureId } from "@/lib/plans";
 import { ComingSoonButton } from "./ComingSoon";
 import { TrafficLight } from "./TrafficLight";
@@ -27,7 +27,23 @@ const SEVERITY: Record<string, string> = {
   baja: "bg-go/10 text-go",
 };
 
-const NEXT_STEPS: FeatureId[] = ["reclamacion", "abogado", "pdf", "comparador"];
+/** Textos y siguientes pasos según se audite un contrato o se revise un CV. */
+const COPY: Record<Mode, { traps: string; versus: string; good: string; bad: string; next: FeatureId[] }> = {
+  contrato: {
+    traps: "Las 3 trampas o puntos críticos",
+    versus: "Lo legal vs. lo que intentan colarte",
+    good: "Lo legal",
+    bad: "Lo que intentan",
+    next: ["reclamacion", "abogado", "pdf", "comparador"],
+  },
+  revision: {
+    traps: "Los 3 puntos débiles",
+    versus: "Lo que buscan vs. lo que pone ahora",
+    good: "Lo que buscan",
+    bad: "Lo que pone ahora",
+    next: ["reescribir", "ofertas", "entrevista", "pdf"],
+  },
+};
 
 export function levelOf(audit: PartialAudit | null): Level | undefined {
   return audit?.semaforo && audit.semaforo in HEADLINE ? (audit.semaforo as Level) : undefined;
@@ -47,15 +63,18 @@ function Section({ n, title, children }: { n: number; title: string; children: R
 
 export function ResultView({
   audit,
+  mode,
   streaming,
   onReset,
   onFeature,
 }: {
   audit: PartialAudit;
+  mode: Mode;
   streaming: boolean;
   onReset: () => void;
   onFeature: (f: FeatureId) => void;
 }) {
+  const copy = COPY[mode];
   const level = levelOf(audit);
   const head = level ? HEADLINE[level] : null;
   const traps = (audit.puntos_criticos ?? []).filter((p) => p.titulo);
@@ -84,7 +103,7 @@ export function ResultView({
       )}
 
       {traps.length > 0 && (
-        <Section n={2} title="Las 3 trampas o puntos críticos">
+        <Section n={2} title={copy.traps}>
           <ol className="flex flex-col divide-y divide-line">
             {traps.map((p, i) => (
               <li key={i} className="flex gap-3 py-3 first:pt-0 last:pb-0">
@@ -112,16 +131,16 @@ export function ResultView({
       )}
 
       {rows.length > 0 && (
-        <Section n={3} title="Lo legal vs. lo que intentan colarte">
+        <Section n={3} title={copy.versus}>
           <div className="flex flex-col gap-3">
             {rows.map((row, i) => (
               <div key={i} className="grid gap-2 sm:grid-cols-2">
                 <div className="rounded-xl bg-go/10 p-3">
-                  <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-go">Lo legal</p>
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-go">{copy.good}</p>
                   <p className="text-[15px] leading-snug">{row.lo_legal}</p>
                 </div>
                 <div className="rounded-xl bg-stop/10 p-3">
-                  <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-stop">Lo que intentan</p>
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-stop">{copy.bad}</p>
                   <p className="text-[15px] leading-snug">{row.lo_que_intentan_colarte}</p>
                 </div>
               </div>
@@ -152,7 +171,7 @@ export function ResultView({
           <section className="animate-rise pt-2">
             <h2 className="mb-3 text-center text-sm font-bold">Da el siguiente paso</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              {NEXT_STEPS.map((f) => (
+              {copy.next.map((f) => (
                 <ComingSoonButton key={f} feature={f} variant="action" onOpen={onFeature} />
               ))}
             </div>

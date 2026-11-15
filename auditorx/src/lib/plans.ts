@@ -68,6 +68,9 @@ export const COMING_SOON = {
   whatsapp: { icon: "📲", label: "Auditar por WhatsApp", blurb: "Reenvía la foto del documento a un número y recibe el semáforo en el chat." },
   alertas: { icon: "🔔", label: "Alertas de renovación", blurb: "Te avisamos antes de que venza una permanencia o se renueve un contrato." },
   historial: { icon: "🗂️", label: "Historial de documentos", blurb: "Todas tus auditorías guardadas y ordenadas, para volver a ellas cuando quieras." },
+  reescribir: { icon: "✍️", label: "Reescribir mi CV con IA", blurb: "Te devolvemos tu currículum ya corregido y maquetado, listo para enviar." },
+  entrevista: { icon: "🎤", label: "Simulador de entrevista", blurb: "Practica las preguntas que te harán para ese puesto y recibe una valoración." },
+  ofertas: { icon: "🎯", label: "Adaptar mi CV a una oferta", blurb: "Pega el enlace de la oferta y ajustamos tu currículum a lo que piden." },
   familia: { icon: "👥", label: "Plan familiar", blurb: "Comparte tus auditorías con hasta 5 personas de tu casa." },
 } as const;
 

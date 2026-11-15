@@ -67,9 +67,17 @@ Packs de pago único (no caducan): 10 → 0,50 € · 25 → 0,99 € · 50 → 
 Stripe no admite cobros inferiores a 0,50 €, por eso no hay pack de 0,30 € y el descuento del 30 % no
 se aplica al plan Pro mensual.
 
+## Tipos de documento (`src/lib/audit-schema.ts` y `src/lib/audit-prompt.ts`)
+
+18 categorías en seis apartados: Vivienda, Facturas, Trabajo, Dinero, Coche y Otros. Cada una lleva
+sus propias instrucciones para Claude. Hay dos modos: `contrato` (buscar trampas en algo que te dan a
+firmar o pagar) y `revision` (mejorar un currículum o carta de presentación), con su propio prompt y
+sus propios títulos en el resultado. Para añadir una categoría basta una línea en `CATEGORY_LIST` y
+su pista en `HINTS`.
+
 ## Funciones «próximamente» (fake doors)
 
-Ocho botones (`COMING_SOON` en `src/lib/plans.ts`) abren un aviso de «en construcción» que pide el
+Once botones (`COMING_SOON` en `src/lib/plans.ts`) abren un aviso de «en construcción» que pide el
 correo a cambio de un 30 % de descuento en la primera suscripción. El descuento se aplica solo en el
 checkout cuando la cuenta usa ese mismo correo.
 

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { NextRequest, NextResponse } from "next/server";
 import { accountFor, consume } from "@/lib/account";
-import { SYSTEM_PROMPT, userInstruction } from "@/lib/audit-prompt";
+import { systemPrompt, userInstruction } from "@/lib/audit-prompt";
 import { type Account, type Audit, AuditSchema, CATEGORIES, type Category } from "@/lib/audit-schema";
 import { currentUser } from "@/lib/auth";
 import { MOCK_AUDIT } from "@/lib/mock";
@@ -62,7 +62,7 @@ async function runAudit(
     {
       model: MODEL,
       max_tokens: 8000,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt(category),
       // "low" prioriza la rapidez; súbelo a "medium" para más profundidad.
       output_config: { effort: "low", format: zodOutputFormat(AuditSchema) },
       messages: [
