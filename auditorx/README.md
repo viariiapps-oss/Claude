@@ -26,9 +26,9 @@ funcionando sin él.
 | --- | --- | --- |
 | Análisis | `ANTHROPIC_API_KEY`, `SESSION_SECRET` | No arranca |
 | Base de datos | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Solo visitantes anónimos con 2 auditorías gratis; no hay login, compras ni captura de correos |
-| Login | `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `AUTH_APPLE_*`, `AUTH_RESEND_KEY` + `AUTH_EMAIL_FROM` | No aparece el botón de ese proveedor |
+| Login social | `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `AUTH_APPLE_*`, `AUTH_RESEND_KEY` + `AUTH_EMAIL_FROM` | Solo correo y contraseña |
 | Pagos | `STRIPE_SECRET_KEY` (+ `STRIPE_WEBHOOK_SECRET`) | La ventana de precios se ve, pero sin botón de compra |
-| Informe de interesados | `ADMIN_SECRET` | `/api/admin/leads` responde 401 |
+| Panel de interesados | `ADMIN_EMAIL`, `ADMIN_SECRET` | `/admin` no existe para nadie |
 
 ### Base de datos
 
@@ -37,14 +37,21 @@ En Vercel: **Storage → Create Database → Upstash for Redis** y conéctala al
 
 ### Inicio de sesión
 
-URL de retorno que pide cada proveedor: `https://TU-DOMINIO/api/auth/callback/<proveedor>`.
+**Correo y contraseña** funciona en cuanto hay base de datos, sin más claves. Las contraseñas se
+guardan cifradas (scrypt) y tras 8 intentos fallidos el correo queda bloqueado 15 minutos.
+
+Los demás se activan con sus variables. URL de retorno que pide cada proveedor:
+`https://TU-DOMINIO/api/auth/callback/<google|github|apple>`.
 
 - **Google**: Google Cloud Console → APIs y servicios → Credenciales → ID de cliente OAuth (aplicación web).
 - **GitHub**: Settings → Developer settings → OAuth Apps → New OAuth App.
 - **Apple**: requiere el Apple Developer Program (de pago). `AUTH_APPLE_ID` es el Services ID y
   `AUTH_APPLE_SECRET` un JWT firmado con tu clave, que caduca como máximo a los 6 meses.
-- **Correo**: cuenta en resend.com con un dominio propio verificado (no sirve `*.vercel.app`). El usuario
-  recibe un enlace y entra sin contraseña.
+- **Enlace por correo** (opcional, sirve de «olvidé mi contraseña»): cuenta en resend.com con un
+  dominio propio verificado (no sirve `*.vercel.app`).
+
+Las cuentas no se unen solas: quien se registró con contraseña y luego pulsa «Google» con el mismo
+correo recibe un aviso para entrar como la primera vez.
 
 ### Pagos
 
@@ -84,12 +91,9 @@ checkout cuando la cuenta usa ese mismo correo.
 El botón de exportar pregunta además el formato preferido (PDF, Word o imagen) y el informe cuenta
 cuántas personas eligen cada uno.
 
-Para ver qué funciones interesan más:
-
-```bash
-curl -H "Authorization: Bearer $ADMIN_SECRET" https://TU-DOMINIO/api/admin/leads            # clics y correos por función
-curl -H "Authorization: Bearer $ADMIN_SECRET" "https://TU-DOMINIO/api/admin/leads?format=csv" # lista de correos
-```
+Para ver qué funciones interesan más, inicia sesión con el correo de `ADMIN_EMAIL`, abre
+`https://TU-DOMINIO/admin` y escribe tu `ADMIN_SECRET`: verás clics y correos por función y podrás
+descargar la lista en CSV. Hacen falta las dos cosas; para cualquier otra persona la página no existe.
 
 ## Estructura
 
@@ -128,6 +132,8 @@ src/
 
 - **Cambio de plan**: para pasar de un plan a otro hay que cancelar el actual desde «Gestionar» y
   suscribirse de nuevo.
+- **Sin verificación de correo ni recuperación de contraseña** salvo que configures el enlace por
+  correo (Resend). Sin él, quien olvide la contraseña no puede recuperarla por sí mismo.
 - **Visitantes sin cuenta**: su contador gratuito va en una cookie; borrarla lo reinicia.
 - **Rate limit en memoria**: protege de ráfagas por instancia, no es un límite global.
 - **Tamaño de subida**: Vercel corta el cuerpo de las funciones en 4,5 MB. Las fotos se comprimen
