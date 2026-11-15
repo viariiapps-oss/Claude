@@ -28,7 +28,7 @@ funcionando sin él.
 | Base de datos | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Solo visitantes anónimos con 2 auditorías gratis; no hay login, compras ni captura de correos |
 | Login social | `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `AUTH_APPLE_*`, `AUTH_RESEND_KEY` + `AUTH_EMAIL_FROM` | Solo correo y contraseña |
 | Pagos | `STRIPE_SECRET_KEY` (+ `STRIPE_WEBHOOK_SECRET`) | La ventana de precios se ve, pero sin botón de compra |
-| Informe de interesados | `ADMIN_SECRET` | `/api/admin/leads` responde 401 |
+| Panel de interesados | `ADMIN_EMAIL`, `ADMIN_SECRET` | `/admin` no existe para nadie |
 
 ### Base de datos
 
@@ -91,13 +91,9 @@ checkout cuando la cuenta usa ese mismo correo.
 El botón de exportar pregunta además el formato preferido (PDF, Word o imagen) y el informe cuenta
 cuántas personas eligen cada uno.
 
-Para ver qué funciones interesan más, abre `https://TU-DOMINIO/admin` y escribe tu `ADMIN_SECRET`:
-verás clics y correos por función y podrás descargar la lista en CSV. Lo mismo por terminal:
-
-```bash
-curl -H "Authorization: Bearer $ADMIN_SECRET" https://TU-DOMINIO/api/admin/leads            # clics y correos por función
-curl -H "Authorization: Bearer $ADMIN_SECRET" "https://TU-DOMINIO/api/admin/leads?format=csv" # lista de correos
-```
+Para ver qué funciones interesan más, inicia sesión con el correo de `ADMIN_EMAIL`, abre
+`https://TU-DOMINIO/admin` y escribe tu `ADMIN_SECRET`: verás clics y correos por función y podrás
+descargar la lista en CSV. Hacen falta las dos cosas; para cualquier otra persona la página no existe.
 
 ## Estructura
 

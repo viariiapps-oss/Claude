@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Report = {
   features: { id: string; label: string; clicks: number; emails: number; choices?: Record<string, number> }[];
@@ -12,6 +12,14 @@ export default function Admin() {
   const [key, setKey] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState("");
+  // null = comprobando; false = este visitante no es el dueño
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/leads")
+      .then((r) => setAllowed(r.status !== 404))
+      .catch(() => setAllowed(false));
+  }, []);
 
   async function load(e: React.FormEvent) {
     e.preventDefault();
@@ -30,6 +38,18 @@ export default function Admin() {
   }
 
   const cell = "border-b border-line px-3 py-2 text-left";
+
+  if (allowed === null) return null;
+  if (!allowed) {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-4 text-center">
+        <h1 className="text-2xl font-black tracking-tight">Página no encontrada</h1>
+        <a href="/" className="mt-4 text-sm underline underline-offset-4">
+          Volver a AuditorX
+        </a>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
