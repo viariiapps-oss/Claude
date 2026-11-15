@@ -428,19 +428,21 @@ export function Auditor() {
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-black tracking-tight">🧾 Renta</h2>
               <span className="rounded-full bg-warn px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#16171b]">
-                En proceso
+                Beta
               </span>
             </div>
             <p className="mt-2 text-[15px] leading-relaxed">
-              Sube tus nóminas y te preparamos el borrador de tu declaración de la renta, casilla a casilla.
+              Sube tus certificados o nóminas y obtén el cálculo de tu renta en PDF, con cada cifra justificada.
             </p>
-            <p className="mt-1 text-sm text-muted">{euros(RENTA_PRICE)} por declaración, aparte de tu plan.</p>
-            <button
-              onClick={() => openSoon("renta")}
-              className="mt-4 h-12 w-full rounded-xl bg-ink font-semibold text-paper transition active:scale-[0.99]"
+            <p className="mt-1 text-sm text-muted">
+              {account?.payments === "off" ? "Gratis durante la fase de pruebas." : `${euros(RENTA_PRICE)} por declaración, aparte de tu plan.`}
+            </p>
+            <a
+              href="/renta"
+              className="mt-4 flex h-12 w-full items-center justify-center rounded-xl bg-ink font-semibold text-paper transition active:scale-[0.99]"
             >
-              Subir mis nóminas
-            </button>
+              Calcular mi renta
+            </a>
           </section>
 
           <section className="mt-8">
