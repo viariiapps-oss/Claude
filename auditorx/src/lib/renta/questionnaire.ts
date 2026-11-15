@@ -114,6 +114,9 @@ export function evaluar(r: Respuestas, ejercicio: Ejercicio, ccaa: Ccaa): Evalua
     documentos.push({ tipo: "certificado_plan_pensiones", titulo: "Certificado de aportaciones al plan de pensiones", detalle: "Solo aportaciones tuyas a planes individuales. Las de la empresa siguen otras reglas." });
   }
 
+  if (r.prestaciones) {
+    avisos.push("Algunas prestaciones están exentas (nacimiento y cuidado de menor, incapacidad permanente absoluta, hijo a cargo…). No las incluyas como ingreso.");
+  }
   if (r.alquiler && !r.alquiler_propietario) {
     avisos.push("Como inquilino puedes tener derecho a una deducción autonómica por alquiler (o a la estatal si tu contrato es anterior a 2015). No la calculamos.");
   }

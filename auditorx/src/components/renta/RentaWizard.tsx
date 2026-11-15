@@ -444,7 +444,9 @@ export function RentaWizard() {
               ))}
             </ul>
           </div>
-          {!access?.loggedIn ? (
+          {!access ? (
+            <p className="animate-lamp text-sm text-muted">Comprobando tu cuenta…</p>
+          ) : !access.loggedIn ? (
             <>
               <p className="text-[15px] leading-relaxed text-muted">Para continuar necesitas una cuenta.</p>
               <button

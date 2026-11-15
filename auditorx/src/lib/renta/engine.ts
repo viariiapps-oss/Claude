@@ -40,6 +40,11 @@ function minimoDiscapacidad(d: Discapacidad, m: Minimos): number {
   return m.discapacidad33 + (d === "33_ayuda" ? m.asistencia : 0);
 }
 
+const descendienteConDerecho = (h: Persona, ejercicio: number) =>
+  edadADevengo(h.fechaNacimiento, ejercicio) < 25 || h.discapacidad !== "ninguna";
+const ascendienteConDerecho = (a: Persona, ejercicio: number) =>
+  edadADevengo(a.fechaNacimiento, ejercicio) >= 65 || a.discapacidad !== "ninguna";
+
 /** Mínimo personal y familiar con las cuantías de una administración (estatal o autonómica). */
 export function minimoPersonalFamiliar(e: Entrada, m: Minimos): number {
   const conjuntaMatrimonio = e.modalidad === "conjunta_matrimonio";
@@ -55,8 +60,11 @@ export function minimoPersonalFamiliar(e: Entrada, m: Minimos): number {
     total += minimoDiscapacidad(a.discapacidad, m);
   }
 
-  // Descendientes por orden de nacimiento (el mayor es «el primero»).
-  const hijos = [...e.descendientes].sort((a, b) => a.fechaNacimiento.localeCompare(b.fechaNacimiento));
+  // Descendientes por orden de nacimiento (el mayor es «el primero»). Art. 58:
+  // solo menores de 25 años o con discapacidad.
+  const hijos = e.descendientes
+    .filter((h) => descendienteConDerecho(h, e.ejercicio))
+    .sort((a, b) => a.fechaNacimiento.localeCompare(b.fechaNacimiento));
   hijos.forEach((h, i) => {
     const edad = edadADevengo(h.fechaNacimiento, e.ejercicio);
     let importe = m.descendientes[Math.min(i, 3)];
@@ -65,7 +73,8 @@ export function minimoPersonalFamiliar(e: Entrada, m: Minimos): number {
     total += h.compartido ? importe / 2 : importe;
   });
 
-  for (const a of e.ascendientes) {
+  // Art. 59: solo mayores de 65 años o con discapacidad.
+  for (const a of e.ascendientes.filter((x) => ascendienteConDerecho(x, e.ejercicio))) {
     const edad = edadADevengo(a.fechaNacimiento, e.ejercicio);
     let importe = m.ascendiente + (edad >= 75 ? m.ascendienteMas75 : 0);
     importe += minimoDiscapacidad(a.discapacidad, m);
@@ -352,10 +361,16 @@ export function calcular(e: Entrada): Resultado {
 
   /* Avisos generales ────────────────────────────────────────────────────── */
   avisos.push({ nivel: "revisar", texto: `No se han aplicado deducciones autonómicas de ${aut.nombre}. Si cumples alguna, tu resultado real será más favorable.` });
+  const sinDerecho =
+    e.descendientes.filter((h) => !descendienteConDerecho(h, e.ejercicio)).length +
+    e.ascendientes.filter((a) => !ascendienteConDerecho(a, e.ejercicio)).length;
+  if (sinDerecho > 0) {
+    avisos.push({ nivel: "revisar", texto: `${sinDerecho} de los familiares indicados no da derecho al mínimo: los hijos deben ser menores de 25 años y los ascendientes mayores de 65, salvo que tengan discapacidad.` });
+  }
   if (e.descendientes.some((h) => edadADevengo(h.fechaNacimiento, e.ejercicio) < 3)) {
     avisos.push({ nivel: "revisar", texto: "Tienes hijos menores de 3 años: revisa la deducción por maternidad (hasta 1.200 € por hijo), que aquí no se calcula." });
   }
-  if (e.descendientes.length >= 3) {
+  if (e.descendientes.filter((h) => descendienteConDerecho(h, e.ejercicio)).length >= 3) {
     avisos.push({ nivel: "revisar", texto: "Con tres o más hijos puedes tener derecho a la deducción por familia numerosa, que aquí no se calcula." });
   }
   const edades = [e.declarante, ...(e.conyuge && e.modalidad === "conjunta_matrimonio" ? [e.conyuge] : [])].map((p) => edadADevengo(p.fechaNacimiento, e.ejercicio));

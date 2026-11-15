@@ -29,7 +29,10 @@ export async function POST(_req: NextRequest) {
   const current = await getPass(user.id);
   if (current && current.docsLeft > 0) return NextResponse.json(await status(user.id));
 
-  if (paymentsMode() !== "off") {
+  if (paymentsMode() === "off") {
+    // Gratis: un expediente cada 30 días por cuenta, sin renovar al agotarlo.
+    if (current) return NextResponse.json(await status(user.id));
+  } else {
     const left = await store.incrby(rentaCreditsKey(user.id), -1);
     if (left < 0) {
       await store.incrby(rentaCreditsKey(user.id), 1);

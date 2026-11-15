@@ -3,7 +3,8 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { allow } from "@/lib/rate-limit";
-import { useDoc } from "@/lib/renta/access";
+import { paymentsMode } from "@/lib/billing";
+import { freeQuotaLeft, useDoc } from "@/lib/renta/access";
 import { EXTRACT_SYSTEM, type Extraccion, ExtraccionSchema } from "@/lib/renta/extract";
 import { MOCK } from "@/lib/store";
 
@@ -54,6 +55,9 @@ export async function POST(req: NextRequest) {
     return error(415, "bad_type", "Formato no admitido. Usa PDF, JPG, PNG o WebP.");
   }
 
+  if (paymentsMode() === "off" && !(await freeQuotaLeft())) {
+    return error(503, "busy", "Hoy hemos alcanzado el máximo de documentos de la fase de pruebas. Vuelve mañana o introduce los datos a mano.");
+  }
   if (!(await useDoc(user.id))) {
     return error(402, "no_pass", "No tienes un expediente de Renta abierto o has agotado las lecturas de documentos.");
   }

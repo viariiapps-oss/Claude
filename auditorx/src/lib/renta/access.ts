@@ -40,3 +40,13 @@ export async function useDoc(userId: string): Promise<boolean> {
 export async function logPurge(userId: string, docs: number, motivo: string): Promise<void> {
   await store.set(`renta:purge:${userId}:${Date.now()}`, { docs, motivo, at: new Date().toISOString() }, { ex: 90 * 86400 });
 }
+
+/** Tope diario de lecturas mientras la Renta es gratuita, para acotar el gasto en IA. */
+const FREE_DAILY = Number(process.env.RENTA_FREE_DAILY) > 0 ? Number(process.env.RENTA_FREE_DAILY) : 300;
+
+export async function freeQuotaLeft(): Promise<boolean> {
+  const key = `renta:free:${new Date().toISOString().slice(0, 10)}`;
+  const n = await store.incrby(key, 1);
+  if (n === 1) await store.expire(key, 2 * 86400);
+  return n <= FREE_DAILY;
+}

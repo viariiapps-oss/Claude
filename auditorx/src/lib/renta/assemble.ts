@@ -134,10 +134,17 @@ export function construirEntrada(ejercicio: Ejercicio, ccaa: Ccaa, datos: DatosP
   };
 }
 
-/** Acepta «1.234,56» y «1234.56». Devuelve NaN si no es un importe. */
+/**
+ * Interpreta un importe escrito a la española: «1.234,56», «2.540» (el punto
+ * separa millares) o «1234,5». También admite «1234.56». Devuelve NaN si no
+ * es un importe válido.
+ */
 export function parseImporte(texto: string): number {
   const t = texto.trim().replace(/\s|€/g, "");
   if (!t) return Number.NaN;
-  const normal = t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t;
+  let normal: string;
+  if (t.includes(",")) normal = t.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) normal = t.replace(/\./g, "");
+  else normal = t;
   return /^\d+(\.\d+)?$/.test(normal) ? Math.round(Number(normal) * 100) / 100 : Number.NaN;
 }

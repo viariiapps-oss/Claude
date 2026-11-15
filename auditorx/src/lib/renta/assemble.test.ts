@@ -71,6 +71,12 @@ describe("ensamblado de documentos", () => {
   it("interpreta importes escritos a la española", () => {
     assert.equal(parseImporte("1.234,56"), 1234.56);
     assert.equal(parseImporte("1234.5"), 1234.5);
+    assert.equal(parseImporte("2.540"), 2540); // punto de millares, no decimales
+    assert.equal(parseImporte("1.234.567"), 1234567);
+    assert.equal(parseImporte("40.000,00"), 40000);
+    assert.equal(parseImporte("8000"), 8000);
+    assert.equal(parseImporte("12,5"), 12.5);
+    assert.ok(Number.isNaN(parseImporte("1,2,3")));
     assert.equal(parseImporte(" 30000 € "), 30000);
     assert.ok(Number.isNaN(parseImporte("abc")));
     assert.ok(Number.isNaN(parseImporte("-5")));

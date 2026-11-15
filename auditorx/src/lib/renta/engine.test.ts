@@ -150,6 +150,18 @@ describe("tributación conjunta y familia", () => {
     // 5.550 + 1.150 + 1.400 + 3.000 + (1.150 + 1.400 + 9.000 + 3.000) / 2
     assert.equal(minimoPersonalFamiliar(e, ESTATALES[2025].minimos), 11100 + 7275);
   });
+  it("no da mínimo por hijos de 25 años o más ni por ascendientes menores de 65, salvo discapacidad", () => {
+    const m = ESTATALES[2025].minimos;
+    const hijo = (fechaNacimiento: string, discapacidad: "ninguna" | "33" = "ninguna") => ({ fechaNacimiento, discapacidad, compartido: false });
+    // Solo cuenta el menor de 25 (2.400 €); el de 30 años no, y no ocupa el puesto de «primero».
+    assert.equal(minimoPersonalFamiliar(base({ descendientes: [hijo("1995-01-01"), hijo("2010-01-01")] }), m), 5550 + 2400);
+    // Con discapacidad sí, a cualquier edad: 2.400 + 3.000 y el segundo 2.700.
+    assert.equal(minimoPersonalFamiliar(base({ descendientes: [hijo("1995-01-01", "33"), hijo("2010-01-01")] }), m), 5550 + 5400 + 2700);
+    assert.equal(minimoPersonalFamiliar(base({ ascendientes: [{ fechaNacimiento: "1970-01-01", discapacidad: "ninguna", contribuyentesConDerecho: 1 }] }), m), 5550);
+    const r = calcular(base({ trabajo: [salario(30000, 1905, 4800)], descendientes: [hijo("1995-01-01")] }));
+    assert.equal(r.minimoEstatal, 5550);
+    assert.ok(r.avisos.some((a) => a.texto.includes("no da derecho al mínimo")));
+  });
 });
 
 describe("inversiones y base del ahorro", () => {
