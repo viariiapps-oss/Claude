@@ -232,9 +232,47 @@ describe("reducciones y deducciones", () => {
   });
 });
 
+describe("otras comunidades", () => {
+  it("Galicia 2025, 30.000 € brutos", () => {
+    // Base 26.095. Galicia: 2.110,38 + 5.026,40 × 14,9 % = 2.859,31; − 5.789 × 9 % (521,01) = 2.338,30.
+    const r = calcular(base({ ccaa: "galicia", trabajo: [salario(30000, 1905, 4800)] }));
+    assert.equal(r.cuotaIntegraEstatal, 2469.75);
+    assert.equal(r.cuotaIntegraAutonomica, 2338.3);
+  });
+
+  it("Extremadura cambia de escala entre 2025 y 2026", () => {
+    // Base 26.095. 2025: 2.411 + 1.895 × 17,5 % = 2.742,63 − 5.550 × 8 % (444) = 2.298,63.
+    // 2026: 2.360,50 + 331,63 = 2.692,13 − 5.550 × 7,75 % (430,13) = 2.262,00.
+    const entrada = { ccaa: "extremadura" as const, trabajo: [salario(30000, 1905, 4800)] };
+    assert.equal(calcular(base({ ...entrada, ejercicio: 2025 })).cuotaIntegraAutonomica, 2298.63);
+    assert.equal(calcular(base({ ...entrada, ejercicio: 2026 })).cuotaIntegraAutonomica, 2262);
+  });
+
+  it("La Rioja solo eleva el mínimo por discapacidad de los descendientes", () => {
+    const hijo = { fechaNacimiento: "2015-01-01", discapacidad: "33" as const, compartido: false };
+    const e = base({ ccaa: "la_rioja", declarante: { fechaNacimiento: "1980-01-01", discapacidad: "33" }, descendientes: [hijo] });
+    // Estatal: 5.550 + 3.000 + 2.400 + 3.000. La Rioja: el del hijo pasa a 3.300; el del contribuyente no.
+    assert.equal(minimoPersonalFamiliar(e, ESTATALES[2025].minimos), 13950);
+    assert.equal(minimoPersonalFamiliar(e, AUTONOMICAS[2025].la_rioja!.minimos!), 14250);
+  });
+
+  it("Illes Balears: mínimos con el 10 % y aviso para revisarlos", () => {
+    const e = base({
+      ccaa: "baleares", trabajo: [salario(30000, 1905, 4800)],
+      descendientes: [1, 2].map((n) => ({ fechaNacimiento: `201${n}-01-01`, discapacidad: "ninguna" as const, compartido: false })),
+    });
+    // 5.550 + 2.400 (el primero no se incrementa) + 2.970 (2.700 + 10 %).
+    assert.equal(minimoPersonalFamiliar(e, AUTONOMICAS[2025].baleares!.minimos!), 10920);
+    assert.ok(calcular(e).avisos.some((a) => a.texto.includes("Illes Balears")));
+  });
+});
+
 describe("garantías del motor", () => {
   it("se niega a calcular una comunidad sin reglas verificadas", () => {
-    assert.throws(() => calcular(base({ ccaa: "galicia", trabajo: [salario(30000, 1905, 4800)] })), RentaError);
+    assert.throws(() => calcular(base({ ccaa: "ceuta", trabajo: [salario(30000, 1905, 4800)] })), RentaError);
+    // Asturias solo está verificada para 2026.
+    assert.throws(() => calcular(base({ ccaa: "asturias", trabajo: [salario(30000, 1905, 4800)] })), RentaError);
+    assert.ok(calcular(base({ ejercicio: 2026, ccaa: "asturias", trabajo: [salario(30000, 1905, 4800)] })).cuotaLiquida > 0);
     assert.throws(() => calcular(base({ ccaa: "navarra", trabajo: [salario(30000, 1905, 4800)] })), RentaError);
   });
 

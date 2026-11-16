@@ -332,8 +332,8 @@ export function RentaWizard() {
             </li>
             <li className={card}>
               <strong>Qué cubre hoy.</strong> Nóminas, paro y pensiones, intereses, dividendos, ventas de acciones,
-              fondos y cripto, hijos y ascendientes, planes de pensiones y donativos, en Andalucía, Cataluña, Madrid y
-              Comunitat Valenciana. Autónomos, alquileres e inmuebles llegarán más adelante.
+              fondos y cripto, hijos y ascendientes, planes de pensiones y donativos, en casi todas las comunidades de
+              régimen común. Autónomos, alquileres e inmuebles llegarán más adelante.
             </li>
             <li className={card}>
               <strong>Tus documentos no se guardan.</strong> Se leen al momento y se descartan. Los datos viven solo en
