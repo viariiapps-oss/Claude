@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { RentaError, aplicarEscala, calcular, minimoPersonalFamiliar, r2 } from "./engine";
+import { RentaError, aplicarEscala, calcular, mesesMenorDeTres, minimoPersonalFamiliar, r2 } from "./engine";
 import { AUTONOMICAS, ESTATALES, type Tramo } from "./rules";
 import type { Entrada, RendimientoTrabajo } from "./types";
 
@@ -22,6 +22,9 @@ const base = (over: Partial<Entrada>): Entrada => ({
   intereses: 0, dividendos: 0, retencionesCapital: 0,
   gananciasPatrimoniales: 0, retencionesGanancias: 0,
   aportacionesPensiones: [0, 0], donativos: 0, donativosRecurrentes: false,
+  inmuebles: [], alquileres: [], trabajoEnCeutaMelilla: false, maternidad: false,
+  familiaNumerosa: "no", hijosExcesoFamiliaNumerosa: 0, familiaNumerosaCompartida: false,
+  requisitoDeduccionesFamiliares: false, deduccionesAnticipadas: 0,
   ...over,
 });
 
@@ -267,12 +270,116 @@ describe("otras comunidades", () => {
   });
 });
 
+describe("inmuebles", () => {
+  it("imputa renta por una segunda residencia (2 % del valor catastral)", () => {
+    // 100.000 × 2 % = 2.000 → base 28.095.
+    // Estatal: 2.112,75 + 7.895 × 15 % = 3.297,00 − 527,25 = 2.769,75.
+    // Madrid: 1.739,53 + 9.090,37 × 12,8 % = 2.903,10 − 506,32 = 2.396,78.
+    const r = calcular(base({
+      trabajo: [salario(30000, 1905, 4800)],
+      inmuebles: [{ descripcion: "Apartamento", valorCatastral: 100000, revisado: false, dias: 365, porcentaje: 100 }],
+    }));
+    assert.equal(r.baseLiquidableGeneral, 28095);
+    assert.equal(r.cuotaIntegraEstatal, 2769.75);
+    assert.equal(r.cuotaIntegraAutonomica, 2396.78);
+  });
+
+  it("valor catastral revisado (1,1 %), medio año y 50 % de titularidad", () => {
+    // 200.000 × 1,1 % = 2.200 × 182/365 × 50 % = 548,49.
+    const r = calcular(base({
+      trabajo: [salario(30000, 1905, 4800)],
+      inmuebles: [{ descripcion: "Casa", valorCatastral: 200000, revisado: true, dias: 182, porcentaje: 50 }],
+    }));
+    assert.equal(r.baseLiquidableGeneral, 26643.49);
+  });
+
+  it("alquiler de vivienda con amortización y reducción del 60 %", () => {
+    // Amortización: 3 % × máx(150.000 × 60 %, 48.000) = 2.700.
+    // Neto: 9.600 − 2.000 − 1.100 − 2.700 = 3.800; reducción 60 % → 1.520. Base 27.615.
+    // Estatal: 2.112,75 + 7.415 × 15 % = 3.225,00 − 527,25 = 2.697,75.
+    const alquiler = { descripcion: "Piso", ingresos: 9600, interesesYReparacion: 2000, otrosGastos: 1100, costeAdquisicion: 150000, valorCatastral: 80000, valorCatastralConstruccion: 48000, diasAlquilado: 365, porcentaje: 100, reduccion: 60 as const };
+    const r = calcular(base({ trabajo: [salario(30000, 1905, 4800)], alquileres: [alquiler] }));
+    assert.equal(r.baseLiquidableGeneral, 27615);
+    assert.equal(r.cuotaIntegraEstatal, 2697.75);
+    // Con contrato posterior al 26-5-2023, reducción general del 50 %: 1.900 → base 27.995.
+    assert.equal(calcular(base({ trabajo: [salario(30000, 1905, 4800)], alquileres: [{ ...alquiler, reduccion: 50 }] })).baseLiquidableGeneral, 27995);
+  });
+
+  it("los intereses y reparaciones no pueden superar los ingresos, y la pérdida no se reduce", () => {
+    // Ingresos 3.000; intereses 5.000 → se deducen 3.000 (2.000 pendientes).
+    // Neto: 3.000 − 3.000 − 500 − 2.700 = −3.200 (sin reducción). Base 26.095 − 3.200 = 22.895.
+    const r = calcular(base({
+      trabajo: [salario(30000, 1905, 4800)],
+      alquileres: [{ descripcion: "Piso", ingresos: 3000, interesesYReparacion: 5000, otrosGastos: 500, costeAdquisicion: 150000, valorCatastral: 80000, valorCatastralConstruccion: 48000, diasAlquilado: 365, porcentaje: 100, reduccion: 60 }],
+    }));
+    assert.equal(r.baseLiquidableGeneral, 22895);
+    assert.ok(r.avisos.some((a) => a.texto.includes("2000.00 € de intereses")));
+  });
+
+  it("las rentas de inmuebles cuentan para el límite de 6.500 € de la reducción del trabajo", () => {
+    const entrada = { ccaa: "andalucia" as const, trabajo: [salario(16000, 1010, 500)] };
+    const con = calcular(base({ ...entrada, inmuebles: [{ descripcion: "Casa", valorCatastral: 400000, revisado: false, dias: 365, porcentaje: 100 }] }));
+    // 8.000 € imputados > 6.500 €: sin reducción del art. 20. Neto 12.990 + 8.000.
+    assert.equal(con.baseLiquidableGeneral, 20990);
+    assert.ok(!con.pasos.some((p) => p.id === "trabajo.reduccion"));
+  });
+});
+
+describe("Asturias, Ceuta y Melilla", () => {
+  it("Asturias aplica en 2025 la escala anterior a la Ley 3/2025 y en 2026 la nueva", () => {
+    // Base 26.095. 2025: 1.875,86 + 8.387,80 × 14 % = 3.050,15 − 5.550 × 10 % (555) = 2.495,15.
+    // 2026: 1.751,36 + 1.174,29 = 2.925,65 − 6.105 × 9 % (549,45) = 2.376,20.
+    const entrada = { ccaa: "asturias" as const, trabajo: [salario(30000, 1905, 4800)] };
+    assert.equal(calcular(base({ ...entrada, ejercicio: 2025 })).cuotaIntegraAutonomica, 2495.15);
+    assert.equal(calcular(base({ ...entrada, ejercicio: 2026 })).cuotaIntegraAutonomica, 2376.2);
+  });
+
+  it("Ceuta: escala del art. 65 y deducción del 60 % por el trabajo realizado allí", () => {
+    // Cuotas: 2.469,75 + 2.469,75 = 4.939,50. Deducción 60 % = 2.963,70. Cuota 1.975,80.
+    const r = calcular(base({ ccaa: "ceuta", trabajo: [salario(30000, 1905, 4800)], trabajoEnCeutaMelilla: true }));
+    assert.equal(r.cuotaIntegraAutonomica, 2469.75);
+    assert.equal(r.deducciones, 2963.7);
+    assert.equal(r.resultado, -2824.2);
+    const sin = calcular(base({ ccaa: "melilla", trabajo: [salario(30000, 1905, 4800)] }));
+    assert.equal(sin.deducciones, 0);
+    assert.ok(sin.avisos.some((a) => a.texto.includes("No se ha aplicado la deducción del 60 %")));
+  });
+});
+
+describe("deducciones familiares", () => {
+  const hijo = (fechaNacimiento: string, discapacidad: "ninguna" | "33" = "ninguna") => ({ fechaNacimiento, discapacidad, compartido: false });
+
+  it("cuenta los meses en que el hijo es menor de tres años", () => {
+    assert.equal(mesesMenorDeTres("2024-03-01", 2025), 12);
+    assert.equal(mesesMenorDeTres("2025-09-15", 2025), 4); // septiembre a diciembre
+    assert.equal(mesesMenorDeTres("2022-06-10", 2025), 5); // enero a mayo; en junio cumple tres
+    assert.equal(mesesMenorDeTres("2021-01-01", 2025), 0);
+  });
+
+  it("maternidad: 100 € por mes, menos lo cobrado por adelantado, aunque la cuota sea baja", () => {
+    const entrada = { trabajo: [salario(30000, 1905, 4800)], descendientes: [hijo("2025-09-15")], maternidad: true };
+    const r = calcular(base(entrada));
+    assert.equal(r.deduccionesFamiliares, 400);
+    assert.equal(r.resultado, r2(r.cuotaLiquida - r.retenciones - 400));
+    assert.equal(calcular(base({ ...entrada, deduccionesAnticipadas: 400 })).deduccionesFamiliares, 0);
+    assert.equal(calcular(base({ ...entrada, maternidad: false })).deduccionesFamiliares, 0);
+  });
+
+  it("familia numerosa y discapacidad a cargo", () => {
+    const hijos = [hijo("2012-01-01"), hijo("2014-01-01", "33"), hijo("2016-01-01"), hijo("2018-01-01")];
+    const comun = { trabajo: [salario(30000, 1905, 4800)], descendientes: hijos, requisitoDeduccionesFamiliares: true };
+    // General con un hijo de más: 1.200 + 600; más 1.200 por el hijo con discapacidad.
+    assert.equal(calcular(base({ ...comun, familiaNumerosa: "general", hijosExcesoFamiliaNumerosa: 1 })).deduccionesFamiliares, 3000);
+    // Especial compartida con el otro progenitor: 2.400 / 2; más 1.200.
+    assert.equal(calcular(base({ ...comun, familiaNumerosa: "especial", familiaNumerosaCompartida: true })).deduccionesFamiliares, 2400);
+    // Sin cumplir el requisito de alta, paro o pensión no hay deducción.
+    assert.equal(calcular(base({ ...comun, familiaNumerosa: "general", requisitoDeduccionesFamiliares: false })).deduccionesFamiliares, 0);
+  });
+});
+
 describe("garantías del motor", () => {
   it("se niega a calcular una comunidad sin reglas verificadas", () => {
-    assert.throws(() => calcular(base({ ccaa: "ceuta", trabajo: [salario(30000, 1905, 4800)] })), RentaError);
-    // Asturias solo está verificada para 2026.
-    assert.throws(() => calcular(base({ ccaa: "asturias", trabajo: [salario(30000, 1905, 4800)] })), RentaError);
-    assert.ok(calcular(base({ ejercicio: 2026, ccaa: "asturias", trabajo: [salario(30000, 1905, 4800)] })).cuotaLiquida > 0);
+    assert.throws(() => calcular(base({ ccaa: "pais_vasco", trabajo: [salario(30000, 1905, 4800)] })), RentaError);
     assert.throws(() => calcular(base({ ccaa: "navarra", trabajo: [salario(30000, 1905, 4800)] })), RentaError);
   });
 

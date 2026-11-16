@@ -141,6 +141,7 @@ export async function generarInforme(datos: DatosInforme, entrada: Entrada, r: R
   row("Deducciones aplicadas", euro(r.deducciones));
   row("Cuota resultante", euro(r.cuotaLiquida));
   row("Retenciones e ingresos a cuenta", euro(r.retenciones));
+  if (r.deduccionesFamiliares !== 0) row("Deducciones familiares (maternidad, familia numerosa, discapacidad)", euro(r.deduccionesFamiliares));
   rule();
   row(etiqueta.charAt(0) + etiqueta.slice(1).toLowerCase(), euro(Math.abs(r.resultado)), true);
 
@@ -177,8 +178,8 @@ export async function generarInforme(datos: DatosInforme, entrada: Entrada, r: R
   heading("Alcance y límites de este informe");
   for (const linea of [
     "El cálculo lo realiza un motor de reglas con las cuantías publicadas en el BOE para el ejercicio indicado; ninguna cifra la decide una IA. Los importes de partida son los que tú has revisado y confirmado.",
-    "Incluye: rendimientos del trabajo, intereses, dividendos, ganancias y pérdidas patrimoniales de la base del ahorro, reducción por tributación conjunta y por planes de pensiones individuales, mínimo personal y familiar, donativos y la deducción por rendimientos del trabajo.",
-    "No incluye: deducciones autonómicas, maternidad, familia numerosa, vivienda, alquileres, actividades económicas, inmuebles ni rentas del extranjero. Si te corresponde alguna deducción, el resultado real será más favorable.",
+    "Incluye: rendimientos del trabajo, alquiler de vivienda, rentas imputadas de inmuebles, intereses, dividendos, ganancias y pérdidas patrimoniales de la base del ahorro, reducción por tributación conjunta y por planes de pensiones individuales, mínimo personal y familiar, donativos y las deducciones por rendimientos del trabajo, maternidad, familia numerosa, discapacidad a cargo y rentas obtenidas en Ceuta o Melilla.",
+    "No incluye: deducciones autonómicas, gastos de guardería, deducciones por vivienda, actividades económicas, compraventa de inmuebles ni rentas del extranjero. Si te corresponde alguna deducción más, el resultado real será más favorable.",
     "Para presentar tu declaración utiliza Renta Web de la Agencia Tributaria y contrasta estas cifras con tus datos fiscales.",
     r.provisional ? `El ejercicio ${r.ejercicio} no está cerrado: las reglas pueden cambiar antes de la campaña.` : "",
     `Generado el ${new Date().toLocaleDateString("es-ES")}.`,

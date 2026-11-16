@@ -12,7 +12,7 @@ export type PreguntaId =
   | "acciones" | "cripto" | "capital" | "familia" | "donaciones" | "pensiones"
   | "inmuebles" | "extranjero" | "cambio_residencia"
   // Aclaraciones que solo se preguntan si la respuesta anterior es «sí»:
-  | "otra_vivienda" | "alquiler_propietario";
+  | "otra_vivienda" | "alquiler_propietario" | "alquiler_vivienda";
 
 export type Pregunta = { id: PreguntaId; texto: string; ayuda?: string; siSolo?: PreguntaId };
 
@@ -25,6 +25,7 @@ export const PREGUNTAS: Pregunta[] = [
   { id: "otra_vivienda", texto: "¿Tienes algún inmueble además de tu vivienda habitual?", ayuda: "Segunda residencia, piso vacío, garaje o local que no forme parte de tu casa.", siSolo: "viviendas" },
   { id: "alquiler", texto: "¿Has alquilado alguna vivienda?" },
   { id: "alquiler_propietario", texto: "¿La alquilas tú como propietario (cobras la renta)?", ayuda: "Responde «no» si eres el inquilino.", siSolo: "alquiler" },
+  { id: "alquiler_vivienda", texto: "¿Es un alquiler de vivienda habitual para el inquilino?", ayuda: "Responde «no» si es alquiler turístico, de temporada, de habitaciones o de un local.", siSolo: "alquiler_propietario" },
   { id: "acciones", texto: "¿Has vendido acciones o reembolsado fondos de inversión?" },
   { id: "cripto", texto: "¿Has vendido o permutado criptomonedas?" },
   { id: "capital", texto: "¿Has cobrado dividendos o intereses bancarios?" },
@@ -40,7 +41,8 @@ export type Respuestas = Partial<Record<PreguntaId, boolean>>;
 
 export type TipoDocumento =
   | "certificado_retenciones" | "nomina" | "certificado_prestacion" | "certificado_bancario"
-  | "informe_inversiones" | "certificado_donativos" | "certificado_plan_pensiones";
+  | "informe_inversiones" | "certificado_donativos" | "certificado_plan_pensiones"
+  | "recibo_ibi" | "datos_alquiler";
 
 export type DocumentoRequerido = { tipo: TipoDocumento; titulo: string; detalle: string; opcional?: boolean };
 
@@ -73,8 +75,9 @@ export function evaluar(r: Respuestas, ejercicio: Ejercicio, ccaa: Ccaa): Evalua
     motivos.push(`Todavía no hemos verificado la escala y los mínimos de ${CCAA_NOMBRES[ccaa]} para ${ejercicio}.`);
   }
   if (r.autonomo) motivos.push("Los rendimientos de actividades económicas (autónomos) aún no están cubiertos.");
-  if (r.otra_vivienda) motivos.push("La imputación de rentas de inmuebles distintos de la vivienda habitual aún no está cubierta.");
-  if (r.alquiler_propietario) motivos.push("Los rendimientos por alquilar un inmueble como propietario aún no están cubiertos.");
+  if (r.alquiler_propietario && r.alquiler_vivienda === false) {
+    motivos.push("Los alquileres turísticos, de temporada, de habitaciones o de locales aún no están cubiertos.");
+  }
   if (r.inmuebles) motivos.push("La compra o venta de inmuebles aún no está cubierta.");
   if (r.extranjero) motivos.push("Los ingresos del extranjero y la doble imposición internacional aún no están cubiertos.");
   if (r.cambio_residencia) motivos.push("Los cambios de residencia durante el ejercicio aún no están cubiertos.");
@@ -107,6 +110,20 @@ export function evaluar(r: Respuestas, ejercicio: Ejercicio, ccaa: Ccaa): Evalua
       detalle: "Debe mostrar la ganancia o pérdida neta del año ya calculada. No calculamos el coste de adquisición operación a operación.",
     });
   }
+  if (r.otra_vivienda) {
+    documentos.push({
+      tipo: "recibo_ibi",
+      titulo: "Recibo del IBI de cada inmueble",
+      detalle: "Para el valor catastral. Estos datos los escribes tú: no hace falta subir el recibo.",
+    });
+  }
+  if (r.alquiler_propietario) {
+    documentos.push({
+      tipo: "datos_alquiler",
+      titulo: "Datos de la vivienda alquilada",
+      detalle: "Rentas cobradas, gastos del año, escritura (coste de compra) y recibo del IBI (valor catastral y valor de la construcción). Los escribes tú.",
+    });
+  }
   if (r.donaciones) {
     documentos.push({ tipo: "certificado_donativos", titulo: "Certificado de donativos", detalle: "El que emite cada entidad con el importe donado en el año." });
   }
@@ -124,13 +141,19 @@ export function evaluar(r: Respuestas, ejercicio: Ejercicio, ccaa: Ccaa): Evalua
     avisos.push("Si compraste tu vivienda habitual antes de 2013 puedes conservar la deducción por adquisición. No la calculamos.");
   }
   if (r.familia) {
-    avisos.push("Revisa las deducciones por maternidad, familia numerosa y personas con discapacidad a cargo. No las calculamos.");
+    avisos.push("No calculamos el incremento por gastos de guardería ni la deducción por cónyuge con discapacidad.");
   }
   if (r.pensiones) {
     avisos.push("Si tu empresa aporta a tu plan de pensiones, el límite de reducción es mayor que el que aplicamos.");
   }
 
-  const sinRentas = !r.trabajo && !r.prestaciones && !r.capital && !r.acciones && !r.cripto;
+  if (ccaa === "ceuta" || ccaa === "melilla") {
+    avisos.push("La deducción del 60 % por rentas obtenidas en Ceuta o Melilla solo se aplica a tu trabajo. Si tienes otras rentas obtenidas allí, puede corresponderte más.");
+  }
+  if (r.alquiler_propietario) {
+    avisos.push("En el alquiler solo se calculan las reducciones del 50 %, 60 %, 70 % y 90 %. Los contratos firmados después del 1 de diciembre de 2026 siguen un régimen nuevo que no calculamos.");
+  }
+  const sinRentas = !r.trabajo && !r.prestaciones && !r.capital && !r.acciones && !r.cripto && !r.otra_vivienda && !r.alquiler_propietario;
   if (sinRentas && motivos.length === 0) {
     motivos.push("Con tus respuestas no aparece ninguna renta que declarar.");
   }

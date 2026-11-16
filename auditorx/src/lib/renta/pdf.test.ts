@@ -12,6 +12,8 @@ it("genera un PDF válido con el resultado", async () => {
     trabajo: [{ id: "t1", titular: 0, clase: "salario", pagador: "Ejemplo, S.L.", integro: 30000, retencion: 4800, cotizaciones: 1905, fuente: "Certificado de retenciones · «Importe íntegro 30.000,00»" }],
     cuotasSindicales: 0, defensaJuridica: 0, intereses: 120.5, dividendos: 0, retencionesCapital: 22.9,
     gananciasPatrimoniales: -300, retencionesGanancias: 0, aportacionesPensiones: [500, 0], donativos: 100, donativosRecurrentes: false,
+    inmuebles: [], alquileres: [], trabajoEnCeutaMelilla: false, maternidad: false, familiaNumerosa: "no", hijosExcesoFamiliaNumerosa: 0,
+    familiaNumerosaCompartida: false, requisitoDeduccionesFamiliares: false, deduccionesAnticipadas: 0,
   };
   const bytes = await generarInforme({ nombre: "María Núñez Ibáñez", nif: "00000000T" }, entrada, calcular(entrada));
   assert.ok(pdfValido(bytes));
