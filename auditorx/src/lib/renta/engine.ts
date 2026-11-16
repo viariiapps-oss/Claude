@@ -34,10 +34,12 @@ export function edadADevengo(fechaNacimiento: string, ejercicio: number): number
   return ejercicio - year;
 }
 
-function minimoDiscapacidad(d: Discapacidad, m: Minimos): number {
+function minimoDiscapacidad(d: Discapacidad, m: Minimos, descendiente = false): number {
   if (d === "ninguna") return 0;
-  if (d === "65") return m.discapacidad65 + m.asistencia;
-  return m.discapacidad33 + (d === "33_ayuda" ? m.asistencia : 0);
+  const base33 = (descendiente && m.discapacidadDescendiente33) || m.discapacidad33;
+  const base65 = (descendiente && m.discapacidadDescendiente65) || m.discapacidad65;
+  if (d === "65") return base65 + m.asistencia;
+  return base33 + (d === "33_ayuda" ? m.asistencia : 0);
 }
 
 const descendienteConDerecho = (h: Persona, ejercicio: number) =>
@@ -69,7 +71,7 @@ export function minimoPersonalFamiliar(e: Entrada, m: Minimos): number {
     const edad = edadADevengo(h.fechaNacimiento, e.ejercicio);
     let importe = m.descendientes[Math.min(i, 3)];
     if (edad < 3) importe += m.menor3;
-    importe += minimoDiscapacidad(h.discapacidad, m);
+    importe += minimoDiscapacidad(h.discapacidad, m, true);
     total += h.compartido ? importe / 2 : importe;
   });
 
@@ -384,6 +386,7 @@ export function calcular(e: Entrada): Resultado {
   if (integro > 0 && integro <= limite && rcm + Math.max(0, e.gananciasPatrimoniales) <= 1600) {
     avisos.push({ nivel: "info", texto: `Por tus rendimientos del trabajo (límite de ${limite.toLocaleString("es-ES")} €) es posible que no estés obligado a declarar. ${resultado < 0 ? "Aun así te conviene presentarla: te sale a devolver." : "Si te sale a pagar, puedes no presentarla."}` });
   }
+  if (aut.nota) avisos.push({ nivel: "revisar", texto: aut.nota });
   if (PROVISIONAL[e.ejercicio]) {
     avisos.push({ nivel: "revisar", texto: `El ejercicio ${e.ejercicio} aún no está cerrado: las reglas pueden cambiar antes de la campaña de Renta.` });
   }

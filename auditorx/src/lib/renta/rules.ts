@@ -35,6 +35,9 @@ export type Minimos = {
   discapacidad33: number;
   discapacidad65: number;
   asistencia: number;
+  /** Solo si la comunidad fija para los descendientes una cuantía distinta de la general. */
+  discapacidadDescendiente33?: number;
+  discapacidadDescendiente65?: number;
 };
 
 export type ReglasEstatales = {
@@ -71,6 +74,8 @@ export type ReglasAutonomicas = {
   escalaGeneral: Tramo[];
   /** null: la comunidad no ha modificado los mínimos y se aplican los estatales. */
   minimos: Minimos | null;
+  /** Advertencia que acompaña siempre al resultado de esta comunidad. */
+  nota?: string;
   fuentes: Record<string, Fuente>;
 };
 
@@ -285,14 +290,268 @@ const VALENCIA_2026: ReglasAutonomicas = {
   },
 };
 
+const V = "Redacción vigente en la fecha de consulta";
+
+const GALICIA: ReglasAutonomicas = {
+  nombre: "Galicia",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 9 },
+    { desde: 12985.35, cuota: 1168.68, tipo: 11.65 },
+    { desde: 21068.6, cuota: 2110.38, tipo: 14.9 },
+    { desde: 35200, cuota: 4215.96, tipo: 18.4 },
+    { desde: 60000, cuota: 8779.16, tipo: 22.5 },
+  ],
+  minimos: {
+    contribuyente: 5789, mas65: 1199, mas75: 1460,
+    descendientes: [2503, 2816, 4172, 4694], menor3: 2920,
+    ascendiente: 1199, ascendienteMas75: 1460,
+    discapacidad33: 3129, discapacidad65: 9387, asistencia: 3129,
+  },
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 4 DLeg. 1/2011 de Galicia (Ley 7/2022)", "BOE-A-2011-18161", "2022-01-01"),
+    minimos: fuenteCcaa("Art. 4 bis DLeg. 1/2011 de Galicia (Ley 7/2022)", "BOE-A-2011-18161", "2022-01-01"),
+  },
+};
+
+const CASTILLA_Y_LEON: ReglasAutonomicas = {
+  nombre: "Castilla y León",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 9 },
+    { desde: 12450, cuota: 1120.5, tipo: 12 },
+    { desde: 20200, cuota: 2050.5, tipo: 14 },
+    { desde: 35200, cuota: 4150.5, tipo: 18.5 },
+    { desde: 53407.2, cuota: 7518.83, tipo: 21.5 },
+  ],
+  // El art. 1 bis fija cuantías propias, que coinciden con las estatales.
+  minimos: MINIMOS_ESTATALES,
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 1 DLeg. 1/2013 de Castilla y León (Ley 2/2022)", "BOCL-h-2013-90254", "2022-01-01"),
+    minimos: fuenteCcaa("Art. 1 bis DLeg. 1/2013 de Castilla y León (Ley 10/2014)", "BOCL-h-2013-90254", "2015-01-01"),
+  },
+};
+
+const ARAGON: ReglasAutonomicas = {
+  nombre: "Aragón",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 9.5 },
+    { desde: 13072.5, cuota: 1241.89, tipo: 12 },
+    { desde: 21210, cuota: 2218.39, tipo: 15 },
+    { desde: 36960, cuota: 4580.89, tipo: 18.5 },
+    { desde: 52500, cuota: 7455.79, tipo: 20.5 },
+    { desde: 60000, cuota: 8993.29, tipo: 23 },
+    { desde: 80000, cuota: 13593.29, tipo: 24 },
+    { desde: 90000, cuota: 15993.29, tipo: 25 },
+    { desde: 130000, cuota: 25993.29, tipo: 25.5 },
+  ],
+  minimos: null,
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 110-1 DLeg. 1/2005 de Aragón (Ley 17/2023)", "BOA-d-2005-90006", "2023-01-01"),
+    minimos: fuenteCcaa("Aragón no ha modificado los mínimos (arts. 56 a 61 Ley 35/2006)", "BOA-d-2005-90006", V),
+  },
+};
+
+const MURCIA: ReglasAutonomicas = {
+  nombre: "Región de Murcia",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 9.5 },
+    { desde: 12450, cuota: 1182.75, tipo: 11.2 },
+    { desde: 20200, cuota: 2050.75, tipo: 13.3 },
+    { desde: 34000, cuota: 3886.15, tipo: 17.9 },
+    { desde: 60000, cuota: 8540.15, tipo: 22.5 },
+  ],
+  minimos: null,
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 2 DLeg. 1/2010 de la Región de Murcia (Ley 14/2018), aplicable desde 2023", "BOE-A-2011-10542", "2023-01-01"),
+    minimos: fuenteCcaa("La Región de Murcia no ha modificado los mínimos (arts. 56 a 61 Ley 35/2006)", "BOE-A-2011-10542", V),
+  },
+};
+
+const CASTILLA_LA_MANCHA: ReglasAutonomicas = {
+  nombre: "Castilla-La Mancha",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 9.5 },
+    { desde: 12450, cuota: 1182.75, tipo: 12 },
+    { desde: 20200, cuota: 2112.75, tipo: 15 },
+    { desde: 35200, cuota: 4362.75, tipo: 18.5 },
+    { desde: 60000, cuota: 8950.75, tipo: 22.5 },
+  ],
+  minimos: null,
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 13 bis Ley 8/2013 de Castilla-La Mancha (Ley 9/2014)", "BOE-A-2014-1368", "2015-01-01"),
+    minimos: fuenteCcaa("Castilla-La Mancha no ha modificado los mínimos (arts. 56 a 61 Ley 35/2006)", "BOE-A-2014-1368", V),
+  },
+};
+
+const BALEARES: ReglasAutonomicas = {
+  nombre: "Illes Balears",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 9 },
+    { desde: 10000, cuota: 900, tipo: 11.25 },
+    { desde: 18000, cuota: 1800, tipo: 14.25 },
+    { desde: 30000, cuota: 3510, tipo: 17.5 },
+    { desde: 48000, cuota: 6660, tipo: 19 },
+    { desde: 70000, cuota: 10840, tipo: 21.75 },
+    { desde: 90000, cuota: 15190, tipo: 22.75 },
+    { desde: 120000, cuota: 22015, tipo: 23.75 },
+    { desde: 175000, cuota: 35077.5, tipo: 24.75 },
+  ],
+  // El art. 2 no da cifras: incrementa un 10 % los mínimos por edad del
+  // contribuyente, por el 2.º, 3.º y 4.º descendiente, por ascendientes y por
+  // discapacidad. Estas cuantías son las estatales con ese 10 % aplicado.
+  minimos: {
+    contribuyente: 5550, mas65: 1265, mas75: 1540,
+    descendientes: [2400, 2970, 4400, 4950], menor3: 2800,
+    ascendiente: 1265, ascendienteMas75: 1540,
+    discapacidad33: 3300, discapacidad65: 9900, asistencia: 3300,
+  },
+  nota: "En Illes Balears la ley no publica las cuantías de los mínimos, sino un incremento del 10 % sobre las estatales. Si tienes más de 65 años, varios hijos, ascendientes a cargo o discapacidad, comprueba esos mínimos en Renta Web.",
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 1 DLeg. 1/2014 de las Illes Balears (Ley 12/2023)", "BOE-A-2014-6925", "2024-01-01"),
+    minimos: fuenteCcaa("Art. 2 DLeg. 1/2014 de las Illes Balears (Ley 11/2023): incremento del 10 %", "BOE-A-2014-6925", V),
+  },
+};
+
+const CANARIAS: ReglasAutonomicas = {
+  nombre: "Canarias",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 9 },
+    { desde: 13748, cuota: 1237.32, tipo: 11.5 },
+    { desde: 19422, cuota: 1889.83, tipo: 14 },
+    { desde: 35924, cuota: 4200.11, tipo: 18.5 },
+    { desde: 57566, cuota: 8203.88, tipo: 23.5 },
+    { desde: 93268, cuota: 16593.85, tipo: 25 },
+    { desde: 123745, cuota: 24213.1, tipo: 26 },
+  ],
+  minimos: {
+    contribuyente: 5606, mas65: 1162, mas75: 1414,
+    descendientes: [2424, 2727, 4040, 4545], menor3: 2828,
+    ascendiente: 1162, ascendienteMas75: 1414,
+    discapacidad33: 3030, discapacidad65: 9090, asistencia: 3030,
+  },
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 18 bis DLeg. 1/2009 de Canarias (Ley 9/2025)", "BOC-j-2009-90008", "2025-01-01"),
+    minimos: fuenteCcaa("Art. 18 quater DLeg. 1/2009 de Canarias (Ley 5/2024)", "BOC-j-2009-90008", "2024-01-01"),
+  },
+};
+
+const CANTABRIA: ReglasAutonomicas = {
+  nombre: "Cantabria",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 8.5 },
+    { desde: 13000, cuota: 1105, tipo: 11 },
+    { desde: 21000, cuota: 1985, tipo: 14.5 },
+    { desde: 35200, cuota: 4044, tipo: 18 },
+    { desde: 60000, cuota: 8508, tipo: 22.5 },
+    { desde: 90000, cuota: 15258, tipo: 24.5 },
+  ],
+  minimos: null,
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 1 DLeg. 62/2008 de Cantabria (Ley 3/2023)", "BOCT-c-2008-90028", "2024-01-01"),
+    minimos: fuenteCcaa("Cantabria no ha modificado los mínimos (arts. 56 a 61 Ley 35/2006)", "BOCT-c-2008-90028", V),
+  },
+};
+
+const EXTREMADURA_2025: ReglasAutonomicas = {
+  nombre: "Extremadura",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 8 },
+    { desde: 12450, cuota: 996, tipo: 10 },
+    { desde: 20200, cuota: 1771, tipo: 16 },
+    { desde: 24200, cuota: 2411, tipo: 17.5 },
+    { desde: 35200, cuota: 4336, tipo: 21 },
+    { desde: 60000, cuota: 9544, tipo: 23.5 },
+    { desde: 80200, cuota: 14291, tipo: 24 },
+    { desde: 99200, cuota: 18851, tipo: 24.5 },
+    { desde: 120200, cuota: 23996, tipo: 25 },
+  ],
+  minimos: null,
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 1 DLeg. 1/2018 de Extremadura (DL 4/2023)", "BOE-A-2018-8159", "2023-01-01", "&tn=1&p=20230915"),
+    minimos: fuenteCcaa("Extremadura no ha modificado los mínimos (arts. 56 a 61 Ley 35/2006)", "BOE-A-2018-8159", V),
+  },
+};
+
+const EXTREMADURA_2026: ReglasAutonomicas = {
+  ...EXTREMADURA_2025,
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 7.75 },
+    { desde: 12450, cuota: 964.88, tipo: 9.75 },
+    { desde: 20200, cuota: 1720.5, tipo: 16 },
+    { desde: 24200, cuota: 2360.5, tipo: 17.5 },
+    { desde: 35200, cuota: 4285.5, tipo: 21 },
+    { desde: 60000, cuota: 9493.5, tipo: 23.5 },
+    { desde: 80200, cuota: 14240.5, tipo: 24 },
+    { desde: 99200, cuota: 18800.5, tipo: 24.5 },
+    { desde: 120200, cuota: 23945.5, tipo: 25 },
+  ],
+  fuentes: {
+    ...EXTREMADURA_2025.fuentes,
+    escalaGeneral: fuenteCcaa("Art. 1 DLeg. 1/2018 de Extremadura (Ley 2/2026)", "BOE-A-2018-8159", "2026-01-01"),
+  },
+};
+
+const LA_RIOJA: ReglasAutonomicas = {
+  nombre: "La Rioja",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 8 },
+    { desde: 12450, cuota: 996, tipo: 10.6 },
+    { desde: 20200, cuota: 1817.5, tipo: 13.6 },
+    { desde: 35200, cuota: 3857.5, tipo: 17.8 },
+    { desde: 40000, cuota: 4711.9, tipo: 18.3 },
+    { desde: 50000, cuota: 6541.9, tipo: 19 },
+    { desde: 60000, cuota: 8441.9, tipo: 24.5 },
+    { desde: 120000, cuota: 23141.9, tipo: 27 },
+  ],
+  // Art. 31 bis: solo cambia el mínimo por discapacidad de descendientes
+  // (3.300 € y 9.900 €); los gastos de asistencia no se modifican.
+  minimos: { ...MINIMOS_ESTATALES, discapacidadDescendiente33: 3300, discapacidadDescendiente65: 9900 },
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 31 Ley 10/2017 de La Rioja (Ley 13/2023)", "BOE-A-2017-13750", "2024-01-01"),
+    minimos: fuenteCcaa("Art. 31 bis Ley 10/2017 de La Rioja (Ley 2/2018)", "BOE-A-2017-13750", "2018-01-01"),
+  },
+};
+
+// Ley 3/2025 del Principado de Asturias, en vigor desde el 3-12-2025. No
+// indica expresamente a qué ejercicio se aplica, así que solo se usa en 2026.
+const ASTURIAS_2026: ReglasAutonomicas = {
+  nombre: "Principado de Asturias",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 9 },
+    { desde: 12450, cuota: 1120.5, tipo: 12 },
+    { desde: 17707.2, cuota: 1751.36, tipo: 14 },
+    { desde: 33007.2, cuota: 3893.36, tipo: 19.2 },
+    { desde: 53407.2, cuota: 7810.16, tipo: 21.5 },
+    { desde: 70000, cuota: 11377.62, tipo: 22.5 },
+    { desde: 90000, cuota: 15877.62, tipo: 25 },
+    { desde: 175000, cuota: 37127.62, tipo: 26 },
+  ],
+  minimos: {
+    contribuyente: 6105, mas65: 1265, mas75: 1540,
+    descendientes: [2640, 2970, 4400, 4950], menor3: 3080,
+    ascendiente: 1265, ascendienteMas75: 1540,
+    discapacidad33: 3300, discapacidad65: 9900, asistencia: 3300,
+  },
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 2 DLeg. 2/2014 del Principado de Asturias (Ley 3/2025)", "BOE-A-2015-945", "2025-12-03"),
+    minimos: fuenteCcaa("Arts. 2 bis a 2 quinquies DLeg. 2/2014 del Principado de Asturias (Ley 3/2025)", "BOE-A-2015-945", "2025-12-03"),
+  },
+};
+
+const COMUNES = {
+  andalucia: ANDALUCIA, aragon: ARAGON, baleares: BALEARES, canarias: CANARIAS, cantabria: CANTABRIA,
+  castilla_la_mancha: CASTILLA_LA_MANCHA, castilla_y_leon: CASTILLA_Y_LEON, cataluna: CATALUNA,
+  galicia: GALICIA, madrid: MADRID, murcia: MURCIA, la_rioja: LA_RIOJA,
+};
+
 /**
  * Solo aparecen las comunidades cuyas tablas se han comprobado en el BOE para
  * ese ejercicio. Para las demás el motor se niega a calcular: es preferible a
- * dar un resultado con cifras sin verificar.
+ * dar un resultado con cifras sin verificar. Pendientes: Asturias 2025 (su
+ * reforma de diciembre de 2025 no precisa el ejercicio), Ceuta y Melilla.
  */
 export const AUTONOMICAS: Record<Ejercicio, Partial<Record<Ccaa, ReglasAutonomicas>>> = {
-  2025: { andalucia: ANDALUCIA, madrid: MADRID, cataluna: CATALUNA, valencia: VALENCIA_2025 },
-  2026: { andalucia: ANDALUCIA, madrid: MADRID, cataluna: CATALUNA, valencia: VALENCIA_2026 },
+  2025: { ...COMUNES, extremadura: EXTREMADURA_2025, valencia: VALENCIA_2025 },
+  2026: { ...COMUNES, asturias: ASTURIAS_2026, extremadura: EXTREMADURA_2026, valencia: VALENCIA_2026 },
 };
 
 export const CCAA_NOMBRES: Record<Ccaa, string> = {

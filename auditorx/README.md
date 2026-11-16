@@ -109,13 +109,13 @@ el Modelo 100, no es un borrador de la AEAT y no presenta nada ante Hacienda.
 **Qué cubre**: rendimientos del trabajo (varios pagadores, paro, pensiones), intereses, dividendos,
 ganancias y pérdidas de acciones, fondos y cripto (saldo neto ya calculado por la entidad),
 tributación individual y conjunta, hijos y ascendientes, discapacidad, planes de pensiones
-individuales, donativos y la deducción de la D.A. 61.ª. Comunidades: Andalucía, Cataluña, Madrid y
-Comunitat Valenciana.
+individuales, donativos y la deducción de la D.A. 61.ª. Comunidades: las quince de régimen común,
+salvo Asturias en el ejercicio 2025 (su reforma de diciembre de 2025 no precisa a qué ejercicio se
+aplica; sí está para 2026).
 
 **Qué no cubre** (el cuestionario lo detecta y no deja continuar): autónomos, alquileres como
 propietario, inmuebles distintos de la vivienda habitual, compraventa de inmuebles, rentas del
-extranjero, cambios de residencia, las otras once comunidades, Ceuta, Melilla y los territorios
-forales. Tampoco aplica deducciones autonómicas, maternidad, familia numerosa ni vivienda: el informe
+extranjero, cambios de residencia, Ceuta, Melilla y los territorios forales. Tampoco aplica deducciones autonómicas, maternidad, familia numerosa ni vivienda: el informe
 lo avisa.
 
 **Privacidad**: el servidor no guarda documentos ni datos fiscales. Los archivos se leen en memoria y
