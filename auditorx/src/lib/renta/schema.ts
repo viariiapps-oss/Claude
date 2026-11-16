@@ -44,4 +44,24 @@ export const EntradaSchema = z.object({
   aportacionesPensiones: z.tuple([importe, importe]),
   donativos: importe,
   donativosRecurrentes: z.boolean(),
+  inmuebles: z
+    .array(z.object({ descripcion: z.string().max(80), valorCatastral: importe, revisado: z.boolean(), dias: z.number().int().min(0).max(365), porcentaje: z.number().gt(0).max(100) }))
+    .max(20),
+  alquileres: z
+    .array(
+      z.object({
+        descripcion: z.string().max(80), ingresos: importe, interesesYReparacion: importe, otrosGastos: importe,
+        costeAdquisicion: importe, valorCatastral: importe, valorCatastralConstruccion: importe,
+        diasAlquilado: z.number().int().min(0).max(365), porcentaje: z.number().gt(0).max(100),
+        reduccion: z.union([z.literal(0), z.literal(50), z.literal(60), z.literal(70), z.literal(90)]),
+      }),
+    )
+    .max(20),
+  trabajoEnCeutaMelilla: z.boolean(),
+  maternidad: z.boolean(),
+  familiaNumerosa: z.enum(["no", "general", "especial"]),
+  hijosExcesoFamiliaNumerosa: z.number().int().min(0).max(20),
+  familiaNumerosaCompartida: z.boolean(),
+  requisitoDeduccionesFamiliares: z.boolean(),
+  deduccionesAnticipadas: importe,
 }) satisfies z.ZodType<Entrada>;

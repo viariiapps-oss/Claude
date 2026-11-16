@@ -19,6 +19,8 @@ const nomina = (id: string, mes: string): Documento => ({
 const datos: DatosPersonales = {
   nombre: "", nif: "", fechaNacimiento: "1990-05-10", discapacidad: "ninguna", modalidad: "individual",
   conyugeFechaNacimiento: "", conyugeDiscapacidad: "ninguna", descendientes: [], ascendientes: [], donativosRecurrentes: false,
+  inmuebles: [], alquileres: [], trabajoEnCeutaMelilla: false, maternidad: false, familiaNumerosa: "no", hijosExcesoFamiliaNumerosa: 0,
+  familiaNumerosaCompartida: false, requisitoDeduccionesFamiliares: false, deduccionesAnticipadas: 0,
 };
 
 describe("ensamblado de documentos", () => {

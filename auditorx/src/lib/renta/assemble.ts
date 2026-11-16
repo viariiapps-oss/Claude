@@ -1,5 +1,5 @@
 import type { Concepto, Extraccion } from "./extract";
-import type { Ascendiente, Ccaa, Descendiente, Discapacidad, Ejercicio, Entrada, Modalidad, RendimientoTrabajo } from "./types";
+import type { Alquiler, Ascendiente, Ccaa, Descendiente, Discapacidad, Ejercicio, Entrada, FamiliaNumerosa, InmuebleImputado, Modalidad, RendimientoTrabajo } from "./types";
 
 /**
  * Convierte lo que el usuario ha revisado en pantalla (documentos leídos y
@@ -31,6 +31,15 @@ export type DatosPersonales = {
   descendientes: Descendiente[];
   ascendientes: Ascendiente[];
   donativosRecurrentes: boolean;
+  inmuebles: InmuebleImputado[];
+  alquileres: Alquiler[];
+  trabajoEnCeutaMelilla: boolean;
+  maternidad: boolean;
+  familiaNumerosa: FamiliaNumerosa;
+  hijosExcesoFamiliaNumerosa: number;
+  familiaNumerosaCompartida: boolean;
+  requisitoDeduccionesFamiliares: boolean;
+  deduccionesAnticipadas: number;
 };
 
 const TRABAJO: Concepto[] = ["retribuciones_integras", "prestacion_integra", "retenciones_irpf", "cotizaciones_seguridad_social"];
@@ -131,6 +140,15 @@ export function construirEntrada(ejercicio: Ejercicio, ccaa: Ccaa, datos: DatosP
     aportacionesPensiones: [total(ok, "aportacion_plan_pensiones", conjuntaMatrimonio ? 0 : undefined), conjuntaMatrimonio ? total(ok, "aportacion_plan_pensiones", 1) : 0],
     donativos: total(ok, "donativo"),
     donativosRecurrentes: datos.donativosRecurrentes,
+    inmuebles: datos.inmuebles,
+    alquileres: datos.alquileres,
+    trabajoEnCeutaMelilla: (ccaa === "ceuta" || ccaa === "melilla") && datos.trabajoEnCeutaMelilla,
+    maternidad: datos.maternidad,
+    familiaNumerosa: datos.familiaNumerosa,
+    hijosExcesoFamiliaNumerosa: datos.familiaNumerosa === "no" ? 0 : datos.hijosExcesoFamiliaNumerosa,
+    familiaNumerosaCompartida: datos.familiaNumerosaCompartida,
+    requisitoDeduccionesFamiliares: datos.requisitoDeduccionesFamiliares,
+    deduccionesAnticipadas: datos.deduccionesAnticipadas,
   };
 }
 

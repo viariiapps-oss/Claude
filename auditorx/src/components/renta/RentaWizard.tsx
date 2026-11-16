@@ -17,7 +17,7 @@ import { CONCEPTOS, CONCEPTO_LABELS, type Concepto, type Extraccion } from "@/li
 import { type DatosInforme, euro, generarInforme, pdfValido } from "@/lib/renta/pdf";
 import { type Respuestas, cuestionarioCompleto, evaluar, preguntasVisibles } from "@/lib/renta/questionnaire";
 import { CCAA_NOMBRES, EJERCICIOS, PROVISIONAL } from "@/lib/renta/rules";
-import type { Ccaa, Discapacidad, Ejercicio, Entrada, Modalidad, Resultado } from "@/lib/renta/types";
+import type { Alquiler, Ccaa, Discapacidad, Ejercicio, Entrada, FamiliaNumerosa, InmuebleImputado, Modalidad, Resultado } from "@/lib/renta/types";
 import { ComingSoonModal } from "../ComingSoon";
 import { LoginModal } from "../LoginModal";
 
@@ -42,13 +42,46 @@ const MODALIDADES: { id: Modalidad; label: string }[] = [
 const DATOS_INICIALES: DatosPersonales = {
   nombre: "", nif: "", fechaNacimiento: "", discapacidad: "ninguna", modalidad: "individual",
   conyugeFechaNacimiento: "", conyugeDiscapacidad: "ninguna", descendientes: [], ascendientes: [], donativosRecurrentes: false,
+  inmuebles: [], alquileres: [], trabajoEnCeutaMelilla: false, maternidad: false, familiaNumerosa: "no",
+  hijosExcesoFamiliaNumerosa: 0, familiaNumerosaCompartida: false, requisitoDeduccionesFamiliares: false, deduccionesAnticipadas: 0,
 };
+const INMUEBLE_NUEVO: InmuebleImputado = { descripcion: "", valorCatastral: 0, revisado: false, dias: 365, porcentaje: 100 };
+const ALQUILER_NUEVO: Alquiler = {
+  descripcion: "", ingresos: 0, interesesYReparacion: 0, otrosGastos: 0, costeAdquisicion: 0,
+  valorCatastral: 0, valorCatastralConstruccion: 0, diasAlquilado: 365, porcentaje: 100, reduccion: 60,
+};
+const REDUCCIONES: { id: Alquiler["reduccion"]; label: string }[] = [
+  { id: 60, label: "60 % · contrato firmado antes del 26 de mayo de 2023" },
+  { id: 50, label: "50 % · contrato posterior, caso general" },
+  { id: 90, label: "90 % · zona tensionada, nuevo contrato con rebaja de renta de más del 5 %" },
+  { id: 70, label: "70 % · primer alquiler en zona tensionada a jóvenes de 18 a 35 años, o alquiler social" },
+  { id: 0, label: "Sin reducción" },
+];
 
 const formatoImporte = (n: number) => euro(n).replace(" €", "");
 const uid = () => Math.random().toString(36).slice(2, 10);
 const input = "h-11 w-full rounded-xl border border-line bg-card px-3 text-[15px] outline-none focus:border-ink";
 const primary = "h-12 w-full rounded-xl bg-ink font-semibold text-paper transition active:scale-[0.99] disabled:opacity-40";
 const card = "rounded-2xl border border-line bg-card p-5";
+
+/** Campo de importe: admite «1.234,56» y solo confirma valores válidos. */
+function Money({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) {
+  return (
+    <Label text={label}>
+      <input
+        inputMode="decimal"
+        className={input}
+        defaultValue={value ? formatoImporte(value) : ""}
+        placeholder="0,00"
+        onBlur={(e) => {
+          const v = e.target.value.trim() === "" ? 0 : parseImporte(e.target.value);
+          if (Number.isNaN(v)) e.target.value = value ? formatoImporte(value) : "";
+          else onChange(v);
+        }}
+      />
+    </Label>
+  );
+}
 
 function Label({ text, children }: { text: string; children: React.ReactNode }) {
   return (
@@ -293,7 +326,10 @@ export function RentaWizard() {
     (datos.modalidad !== "conjunta_matrimonio" || /^\d{4}-\d{2}-\d{2}$/.test(datos.conyugeFechaNacimiento)) &&
     datos.descendientes.every((h) => h.fechaNacimiento) &&
     datos.ascendientes.every((a) => a.fechaNacimiento);
-  const hayCifras = docs.some((d) => d.estado === "ok" && d.campos.length > 0);
+  const inmueblesCompletos =
+    datos.inmuebles.every((x) => x.descripcion.trim() && x.valorCatastral > 0) &&
+    datos.alquileres.every((x) => x.descripcion.trim() && x.ingresos > 0 && x.valorCatastral > 0 && x.valorCatastralConstruccion <= x.valorCatastral);
+  const hayCifras = (docs.some((d) => d.estado === "ok" && d.campos.length > 0) || datos.inmuebles.length + datos.alquileres.length > 0) && inmueblesCompletos;
   const leyendo = docs.some((d) => d.estado === "leyendo");
 
   return (
@@ -331,9 +367,10 @@ export function RentaWizard() {
               no presentamos nada ante Hacienda: la declaración la presentas tú en Renta Web.
             </li>
             <li className={card}>
-              <strong>Qué cubre hoy.</strong> Nóminas, paro y pensiones, intereses, dividendos, ventas de acciones,
-              fondos y cripto, hijos y ascendientes, planes de pensiones y donativos, en casi todas las comunidades de
-              régimen común. Autónomos, alquileres e inmuebles llegarán más adelante.
+              <strong>Qué cubre hoy.</strong> Nóminas, paro y pensiones; intereses, dividendos y ventas de acciones, fondos
+              y cripto; viviendas alquiladas y segundas residencias; hijos, ascendientes, maternidad y familia
+              numerosa; planes de pensiones y donativos. En todas las comunidades de régimen común, Ceuta y Melilla.
+              Todavía no: autónomos, compraventa de inmuebles ni rentas del extranjero.
             </li>
             <li className={card}>
               <strong>Tus documentos no se guardan.</strong> Se leen al momento y se descartan. Los datos viven solo en
@@ -583,6 +620,50 @@ export function RentaWizard() {
             </>
           )}
 
+          {(ccaa === "ceuta" || ccaa === "melilla") && (
+            <label className={`${card} flex items-start gap-2 text-[15px]`}>
+              <input type="checkbox" className="mt-1" checked={datos.trabajoEnCeutaMelilla} onChange={(e) => setDatos({ ...datos, trabajoEnCeutaMelilla: e.target.checked })} />
+              Todo mi trabajo del año se ha realizado en {CCAA_NOMBRES[ccaa]} (da derecho a la deducción del 60 %)
+            </label>
+          )}
+
+          {respuestas.familia && (
+            <div className={card}>
+              <p className="font-semibold">Deducciones familiares</p>
+              <label className="mt-3 flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-0.5" checked={datos.maternidad} onChange={(e) => setDatos({ ...datos, maternidad: e.target.checked })} />
+                Soy madre de un menor de 3 años y estoy de alta en la Seguridad Social (o cobraba el paro cuando nació)
+              </label>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <Label text="Familia numerosa">
+                  <select className={input} value={datos.familiaNumerosa} onChange={(e) => setDatos({ ...datos, familiaNumerosa: e.target.value as FamiliaNumerosa })}>
+                    <option value="no">No</option>
+                    <option value="general">Sí, categoría general</option>
+                    <option value="especial">Sí, categoría especial</option>
+                  </select>
+                </Label>
+                {datos.familiaNumerosa !== "no" && (
+                  <Label text="Hijos por encima del mínimo de tu categoría">
+                    <input type="number" min={0} max={20} className={input} value={datos.hijosExcesoFamiliaNumerosa} onChange={(e) => setDatos({ ...datos, hijosExcesoFamiliaNumerosa: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} />
+                  </Label>
+                )}
+              </div>
+              {datos.familiaNumerosa !== "no" && (
+                <label className="mt-3 flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-0.5" checked={datos.familiaNumerosaCompartida} onChange={(e) => setDatos({ ...datos, familiaNumerosaCompartida: e.target.checked })} />
+                  El otro progenitor también tiene derecho a esta deducción (se reparte al 50 %)
+                </label>
+              )}
+              <label className="mt-3 flex items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-0.5" checked={datos.requisitoDeduccionesFamiliares} onChange={(e) => setDatos({ ...datos, requisitoDeduccionesFamiliares: e.target.checked })} />
+                Trabajo de alta en la Seguridad Social, o cobro paro o pensión (necesario para las deducciones por familia numerosa y por familiares con discapacidad)
+              </label>
+              <div className="mt-3">
+                <Money label="Importe de estas deducciones que ya has cobrado por adelantado (€)" value={datos.deduccionesAnticipadas} onChange={(n) => setDatos({ ...datos, deduccionesAnticipadas: n })} />
+              </div>
+            </div>
+          )}
+
           <button disabled={!datosCompletos} onClick={() => { setStep("documentos"); window.scrollTo({ top: 0 }); }} className={primary}>
             Continuar
           </button>
@@ -663,6 +744,92 @@ export function RentaWizard() {
             </article>
           ))}
 
+          {respuestas.otra_vivienda && (
+            <div className={card}>
+              <p className="font-semibold">Inmuebles a tu disposición</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                Segunda residencia, vivienda vacía, garaje o trastero que no formen parte de tu vivienda habitual. El valor
+                catastral está en el recibo del IBI.
+              </p>
+              {datos.inmuebles.map((x, i) => {
+                const set = (patch: Partial<InmuebleImputado>) => { setDatos({ ...datos, inmuebles: datos.inmuebles.map((y, j) => (j === i ? { ...y, ...patch } : y)) }); setRevisado(false); };
+                return (
+                  <div key={i} className="mt-3 grid gap-3 border-t border-line pt-3 sm:grid-cols-2">
+                    <Label text="Nombre para identificarlo">
+                      <input className={input} value={x.descripcion} placeholder="Apartamento en la playa" onChange={(e) => set({ descripcion: e.target.value })} />
+                    </Label>
+                    <Money label="Valor catastral (€)" value={x.valorCatastral} onChange={(n) => set({ valorCatastral: n })} />
+                    <Label text="Días del año sin alquilar">
+                      <input type="number" min={0} max={365} className={input} value={x.dias} onChange={(e) => set({ dias: Math.min(365, Math.max(0, Math.floor(Number(e.target.value) || 0))) })} />
+                    </Label>
+                    <Label text="Tu porcentaje de propiedad">
+                      <input type="number" min={1} max={100} className={input} value={x.porcentaje} onChange={(e) => set({ porcentaje: Math.min(100, Math.max(1, Number(e.target.value) || 100)) })} />
+                    </Label>
+                    <label className="flex items-start gap-2 text-sm sm:col-span-2">
+                      <input type="checkbox" className="mt-0.5" checked={x.revisado} onChange={(e) => set({ revisado: e.target.checked })} />
+                      El valor catastral de su municipio se revisó en este ejercicio o en los diez anteriores
+                    </label>
+                    <button onClick={() => { setDatos({ ...datos, inmuebles: datos.inmuebles.filter((_, j) => j !== i) }); setRevisado(false); }} className="justify-self-start text-sm text-stop underline underline-offset-4">
+                      Quitar
+                    </button>
+                  </div>
+                );
+              })}
+              <button onClick={() => setDatos({ ...datos, inmuebles: [...datos.inmuebles, { ...INMUEBLE_NUEVO }] })} className="mt-3 h-10 rounded-full border border-line px-4 text-sm font-semibold">
+                Añadir inmueble
+              </button>
+            </div>
+          )}
+
+          {respuestas.alquiler_propietario && (
+            <div className={card}>
+              <p className="font-semibold">Viviendas que alquilas</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                Importes del año completo. El valor catastral y el de la construcción están en el recibo del IBI; el coste
+                de compra incluye el precio, los impuestos y los gastos de la escritura.
+              </p>
+              {datos.alquileres.map((x, i) => {
+                const set = (patch: Partial<Alquiler>) => { setDatos({ ...datos, alquileres: datos.alquileres.map((y, j) => (j === i ? { ...y, ...patch } : y)) }); setRevisado(false); };
+                return (
+                  <div key={i} className="mt-3 grid gap-3 border-t border-line pt-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Label text="Nombre para identificarla">
+                        <input className={input} value={x.descripcion} placeholder="Piso de la calle Mayor" onChange={(e) => set({ descripcion: e.target.value })} />
+                      </Label>
+                    </div>
+                    <Money label="Rentas cobradas en el año (€)" value={x.ingresos} onChange={(n) => set({ ingresos: n })} />
+                    <Money label="Intereses de la hipoteca y reparaciones (€)" value={x.interesesYReparacion} onChange={(n) => set({ interesesYReparacion: n })} />
+                    <Money label="IBI, comunidad, seguro y otros gastos (€)" value={x.otrosGastos} onChange={(n) => set({ otrosGastos: n })} />
+                    <Money label="Coste de compra (€)" value={x.costeAdquisicion} onChange={(n) => set({ costeAdquisicion: n })} />
+                    <Money label="Valor catastral total (€)" value={x.valorCatastral} onChange={(n) => set({ valorCatastral: n })} />
+                    <Money label="Valor catastral de la construcción (€)" value={x.valorCatastralConstruccion} onChange={(n) => set({ valorCatastralConstruccion: n })} />
+                    <Label text="Días alquilada en el año">
+                      <input type="number" min={0} max={365} className={input} value={x.diasAlquilado} onChange={(e) => set({ diasAlquilado: Math.min(365, Math.max(0, Math.floor(Number(e.target.value) || 0))) })} />
+                    </Label>
+                    <Label text="Tu porcentaje de propiedad">
+                      <input type="number" min={1} max={100} className={input} value={x.porcentaje} onChange={(e) => set({ porcentaje: Math.min(100, Math.max(1, Number(e.target.value) || 100)) })} />
+                    </Label>
+                    <div className="sm:col-span-2">
+                      <Label text="Reducción que corresponde al contrato">
+                        <select className={input} value={x.reduccion} onChange={(e) => set({ reduccion: Number(e.target.value) as Alquiler["reduccion"] })}>
+                          {REDUCCIONES.map((r) => (
+                            <option key={r.id} value={r.id}>{r.label}</option>
+                          ))}
+                        </select>
+                      </Label>
+                    </div>
+                    <button onClick={() => { setDatos({ ...datos, alquileres: datos.alquileres.filter((_, j) => j !== i) }); setRevisado(false); }} className="justify-self-start text-sm text-stop underline underline-offset-4">
+                      Quitar
+                    </button>
+                  </div>
+                );
+              })}
+              <button onClick={() => setDatos({ ...datos, alquileres: [...datos.alquileres, { ...ALQUILER_NUEVO }] })} className="mt-3 h-10 rounded-full border border-line px-4 text-sm font-semibold">
+                Añadir vivienda alquilada
+              </button>
+            </div>
+          )}
+
           <div className={card}>
             <p className="font-semibold">Añadir un dato a mano</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -738,6 +905,7 @@ export function RentaWizard() {
                 ["Deducciones", resultado.deducciones],
                 ["Cuota resultante", resultado.cuotaLiquida],
                 ["Retenciones", resultado.retenciones],
+                ...(resultado.deduccionesFamiliares !== 0 ? [["Deducciones familiares", resultado.deduccionesFamiliares]] : []),
               ].map(([k, v]) => (
                 <div key={k as string} className="flex justify-between gap-4 border-b border-line py-2 last:border-0">
                   <dt className="text-muted">{k}</dt>

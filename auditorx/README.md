@@ -106,17 +106,18 @@ el Modelo 100, no es un borrador de la AEAT y no presenta nada ante Hacienda.
 | Informe | `src/lib/renta/pdf.ts` | PDF generado en el navegador |
 | Acceso y pago | `src/lib/renta/access.ts`, `api/renta/access` | Pase de 30 días y 30 lecturas; 5 € con Stripe activo, gratis sin él |
 
-**Qué cubre**: rendimientos del trabajo (varios pagadores, paro, pensiones), intereses, dividendos,
-ganancias y pérdidas de acciones, fondos y cripto (saldo neto ya calculado por la entidad),
-tributación individual y conjunta, hijos y ascendientes, discapacidad, planes de pensiones
-individuales, donativos y la deducción de la D.A. 61.ª. Comunidades: las quince de régimen común,
-salvo Asturias en el ejercicio 2025 (su reforma de diciembre de 2025 no precisa a qué ejercicio se
-aplica; sí está para 2026).
+**Qué cubre**: rendimientos del trabajo (varios pagadores, paro, pensiones); intereses, dividendos y
+ganancias y pérdidas de acciones, fondos y cripto (saldo neto ya calculado por la entidad); alquiler
+de vivienda como propietario (gastos, amortización y reducción del 50, 60, 70 o 90 %); rentas
+imputadas de segundas residencias; tributación individual y conjunta; hijos, ascendientes y
+discapacidad; planes de pensiones individuales; donativos; y las deducciones por rendimientos del
+trabajo (D.A. 61.ª), maternidad, familia numerosa, discapacidad a cargo y rentas obtenidas en Ceuta o
+Melilla. Comunidades: las quince de régimen común, Ceuta y Melilla, en 2025 y 2026.
 
-**Qué no cubre** (el cuestionario lo detecta y no deja continuar): autónomos, alquileres como
-propietario, inmuebles distintos de la vivienda habitual, compraventa de inmuebles, rentas del
-extranjero, cambios de residencia, Ceuta, Melilla y los territorios forales. Tampoco aplica deducciones autonómicas, maternidad, familia numerosa ni vivienda: el informe
-lo avisa.
+**Qué no cubre** (el cuestionario lo detecta y no deja continuar): autónomos, compraventa de
+inmuebles, alquileres turísticos, de temporada o de locales, rentas del extranjero, cambios de
+residencia y los territorios forales. Tampoco aplica deducciones autonómicas, gastos de guardería ni
+deducciones por vivienda: el informe lo avisa.
 
 **Privacidad**: el servidor no guarda documentos ni datos fiscales. Los archivos se leen en memoria y
 se descartan; los datos viven en la pestaña del navegador y se borran al descargar el informe, al
@@ -130,7 +131,7 @@ comprueban que las cuotas acumuladas de cada tabla cuadran con las publicadas y 
 a calcular donde no hay reglas.
 
 ```bash
-npm test   # 37 pruebas: casos calculados a mano, escalas, ensamblado y PDF
+npm test   # 78 pruebas: casos calculados a mano, escalas, ensamblado y PDF
 ```
 
 ## Funciones «próximamente» (fake doors)

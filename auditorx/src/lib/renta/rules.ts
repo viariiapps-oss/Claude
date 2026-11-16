@@ -66,6 +66,15 @@ export type ReglasEstatales = {
   donativos: { tramo: number; tipoTramo: number; tipoResto: number; tipoRecurrente: number; limiteBase: number };
   compensacionAhorro: number;
   obligacion: { unPagador: number; variosPagadores: number; umbralSegundoPagador: number };
+  /** Art. 85: porcentaje sobre el valor catastral. */
+  imputacionInmuebles: { general: number; revisado: number };
+  /** Art. 23.1.b: porcentaje máximo de amortización del inmueble alquilado. */
+  amortizacionInmueble: number;
+  maternidad: number;
+  familiaNumerosa: { general: number; especial: number; porHijoExceso: number };
+  discapacidadACargo: number;
+  /** Art. 68.4: deducción por rentas obtenidas en Ceuta o Melilla. */
+  deduccionCeutaMelilla: number;
   fuentes: Record<string, Fuente>;
 };
 
@@ -119,6 +128,12 @@ function fuentesEstatales(deduccionTrabajo: Fuente): Record<string, Fuente> {
     escalaAhorro: f("Arts. 66.1 y 76 Ley 35/2006 (Ley 7/2024)", "2025-01-01"),
     conjunta: f("Art. 84.2 Ley 35/2006", "Redacción vigente en la fecha de consulta"),
     obligacion: f("Art. 96 Ley 35/2006", "Redacción vigente en la fecha de consulta"),
+    imputacion: { norma: "Art. 85 Ley 35/2006 (Ley 26/2014; la redacción nueva no rige hasta 2027)", url: `${LIRPF}&tn=1&p=20141128`, vigencia: "2015-01-01", consultado: CONSULTADO },
+    alquiler: { norma: "Arts. 22 y 23.1 Ley 35/2006 y arts. 13 y 14 del Reglamento (RD 439/2007)", url: "https://www.boe.es/buscar/act.php?id=BOE-A-2007-6820", vigencia: "Redacción vigente en la fecha de consulta", consultado: CONSULTADO },
+    reduccionAlquiler: { norma: "Art. 23.2 Ley 35/2006 y D.T. 38.ª (redacciones vigentes a 31-12-2021 y a 31-12-2025)", url: `${LIRPF}&tn=1&p=20251224`, vigencia: "2024-01-01", consultado: CONSULTADO },
+    maternidad: f("Art. 81 Ley 35/2006 (Ley 31/2022)", "2023-01-01"),
+    familiares: f("Art. 81 bis Ley 35/2006", "Redacción vigente en la fecha de consulta"),
+    ceutaMelilla: f("Art. 68.4 y D.A. 32.ª Ley 35/2006", "2015-01-01"),
     donativos: {
       norma: "Art. 19 Ley 49/2002 (RDL 6/2023) y art. 69.1 Ley 35/2006",
       url: "https://www.boe.es/buscar/act.php?id=BOE-A-2002-25039",
@@ -150,6 +165,12 @@ function estatales(deduccion: ReglasEstatales["deduccionTrabajo"], fuenteDeducci
     donativos: { tramo: 250, tipoTramo: 80, tipoResto: 40, tipoRecurrente: 45, limiteBase: 10 },
     compensacionAhorro: 25,
     obligacion: { unPagador: 22000, variosPagadores: 15876, umbralSegundoPagador: 1500 },
+    imputacionInmuebles: { general: 2, revisado: 1.1 },
+    amortizacionInmueble: 3,
+    maternidad: 1200,
+    familiaNumerosa: { general: 1200, especial: 2400, porHijoExceso: 600 },
+    discapacidadACargo: 1200,
+    deduccionCeutaMelilla: 60,
     fuentes: fuentesEstatales(fuenteDeduccion),
   };
 }
@@ -511,8 +532,8 @@ const LA_RIOJA: ReglasAutonomicas = {
   },
 };
 
-// Ley 3/2025 del Principado de Asturias, en vigor desde el 3-12-2025. No
-// indica expresamente a qué ejercicio se aplica, así que solo se usa en 2026.
+// Ley 3/2025 del Principado de Asturias, en vigor desde el 3-12-2025: se
+// aplica a los períodos impositivos iniciados desde entonces (2026).
 const ASTURIAS_2026: ReglasAutonomicas = {
   nombre: "Principado de Asturias",
   escalaGeneral: [
@@ -537,7 +558,48 @@ const ASTURIAS_2026: ReglasAutonomicas = {
   },
 };
 
+// Redacción anterior a la Ley 3/2025. Esa ley entró en vigor el 3-12-2025 y,
+// conforme al art. 10.2 de la Ley General Tributaria, se aplica a los períodos
+// impositivos iniciados desde entonces: 2026 en adelante.
+const ASTURIAS_2025: ReglasAutonomicas = {
+  nombre: "Principado de Asturias",
+  escalaGeneral: [
+    { desde: 0, cuota: 0, tipo: 10 },
+    { desde: 12450, cuota: 1245, tipo: 12 },
+    { desde: 17707.2, cuota: 1875.86, tipo: 14 },
+    { desde: 33007.2, cuota: 4017.86, tipo: 18.5 },
+    { desde: 53407.2, cuota: 7791.86, tipo: 21.5 },
+    { desde: 70000, cuota: 11359.32, tipo: 22.5 },
+    { desde: 90000, cuota: 15859.32, tipo: 25 },
+    { desde: 175000, cuota: 37109.32, tipo: 25.5 },
+  ],
+  minimos: null,
+  fuentes: {
+    escalaGeneral: fuenteCcaa("Art. 2 DLeg. 2/2014 del Principado de Asturias (Ley 11/2014) y art. 10.2 Ley 58/2003", "BOE-A-2015-945", "2015-01-01", "&tn=1&p=20141231"),
+    minimos: fuenteCcaa("Asturias no tenía mínimos propios antes de la Ley 3/2025 (arts. 56 a 61 Ley 35/2006)", "BOE-A-2015-945", "2015-01-01", "&tn=1&p=20141231"),
+  },
+};
+
+// D.A. 32.ª: los residentes en Ceuta o Melilla aplican como escala autonómica la del art. 65.
+const escalaArt65: Tramo[] = [
+  { desde: 0, cuota: 0, tipo: 9.5 },
+  { desde: 12450, cuota: 1182.75, tipo: 12 },
+  { desde: 20200, cuota: 2112.75, tipo: 15 },
+  { desde: 35200, cuota: 4362.75, tipo: 18.5 },
+  { desde: 60000, cuota: 8950.75, tipo: 22.5 },
+];
+const ciudadAutonoma = (nombre: string): ReglasAutonomicas => ({
+  nombre,
+  escalaGeneral: escalaArt65,
+  minimos: null,
+  fuentes: {
+    escalaGeneral: { norma: "D.A. 32.ª y art. 65 Ley 35/2006", url: LIRPF, vigencia: "2015-01-01", consultado: CONSULTADO },
+    minimos: { norma: "Arts. 56 a 61 Ley 35/2006", url: LIRPF, vigencia: "2015-01-01", consultado: CONSULTADO },
+  },
+});
+
 const COMUNES = {
+  ceuta: ciudadAutonoma("Ceuta"), melilla: ciudadAutonoma("Melilla"),
   andalucia: ANDALUCIA, aragon: ARAGON, baleares: BALEARES, canarias: CANARIAS, cantabria: CANTABRIA,
   castilla_la_mancha: CASTILLA_LA_MANCHA, castilla_y_leon: CASTILLA_Y_LEON, cataluna: CATALUNA,
   galicia: GALICIA, madrid: MADRID, murcia: MURCIA, la_rioja: LA_RIOJA,
@@ -546,11 +608,11 @@ const COMUNES = {
 /**
  * Solo aparecen las comunidades cuyas tablas se han comprobado en el BOE para
  * ese ejercicio. Para las demás el motor se niega a calcular: es preferible a
- * dar un resultado con cifras sin verificar. Pendientes: Asturias 2025 (su
- * reforma de diciembre de 2025 no precisa el ejercicio), Ceuta y Melilla.
+ * dar un resultado con cifras sin verificar. País Vasco y Navarra quedan
+ * fuera por tener IRPF foral.
  */
 export const AUTONOMICAS: Record<Ejercicio, Partial<Record<Ccaa, ReglasAutonomicas>>> = {
-  2025: { ...COMUNES, extremadura: EXTREMADURA_2025, valencia: VALENCIA_2025 },
+  2025: { ...COMUNES, asturias: ASTURIAS_2025, extremadura: EXTREMADURA_2025, valencia: VALENCIA_2025 },
   2026: { ...COMUNES, asturias: ASTURIAS_2026, extremadura: EXTREMADURA_2026, valencia: VALENCIA_2026 },
 };
 

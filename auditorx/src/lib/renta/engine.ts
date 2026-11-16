@@ -9,8 +9,10 @@ import type { Aviso, Discapacidad, Entrada, Paso, Persona, Resultado } from "./t
  * Alcance: rendimientos del trabajo, capital mobiliario (intereses y
  * dividendos), ganancias patrimoniales de la base del ahorro, reducción por
  * tributación conjunta y por planes de pensiones individuales, mínimo
- * personal y familiar, donativos y la deducción de la D.A. 61.ª. Lo que queda
- * fuera se descarta antes, en el cuestionario (ver questionnaire.ts).
+ * personal y familiar, alquiler de vivienda, imputación de rentas
+ * inmobiliarias, donativos, la deducción de la D.A. 61.ª, la de Ceuta y
+ * Melilla y las de maternidad, familia numerosa y discapacidad a cargo. Lo que
+ * queda fuera se descarta antes, en el cuestionario (ver questionnaire.ts).
  */
 
 export class RentaError extends Error {}
@@ -33,6 +35,23 @@ export function edadADevengo(fechaNacimiento: string, ejercicio: number): number
   }
   return ejercicio - year;
 }
+
+/**
+ * Meses del ejercicio en los que el hijo es menor de tres años: cuenta el mes
+ * de nacimiento y no el mes en que cumple los tres.
+ */
+export function mesesMenorDeTres(fechaNacimiento: string, ejercicio: number): number {
+  const y = Number(fechaNacimiento.slice(0, 4));
+  const m = Number(fechaNacimiento.slice(5, 7));
+  let meses = 0;
+  for (let k = 1; k <= 12; k++) {
+    const edadEnMeses = (ejercicio - y) * 12 + (k - m);
+    if (edadEnMeses >= 0 && edadEnMeses < 36) meses++;
+  }
+  return meses;
+}
+
+const DIAS_ANIO = 365;
 
 function minimoDiscapacidad(d: Discapacidad, m: Minimos, descendiente = false): number {
   if (d === "ninguna") return 0;
@@ -97,6 +116,23 @@ function validar(e: Entrada): void {
   for (const t of e.trabajo) {
     importes.push([`rendimiento íntegro de ${t.pagador}`, t.integro], [`retención de ${t.pagador}`, t.retencion], [`cotizaciones de ${t.pagador}`, t.cotizaciones]);
   }
+  importes.push(["deducciones cobradas por adelantado", e.deduccionesAnticipadas], ["hijos de más en la familia numerosa", e.hijosExcesoFamiliaNumerosa]);
+  for (const i of e.inmuebles) importes.push([`valor catastral de ${i.descripcion}`, i.valorCatastral]);
+  for (const a of e.alquileres) {
+    importes.push(
+      [`ingresos de ${a.descripcion}`, a.ingresos], [`intereses y reparaciones de ${a.descripcion}`, a.interesesYReparacion],
+      [`otros gastos de ${a.descripcion}`, a.otrosGastos], [`coste de adquisición de ${a.descripcion}`, a.costeAdquisicion],
+      [`valor catastral de ${a.descripcion}`, a.valorCatastral], [`valor catastral de la construcción de ${a.descripcion}`, a.valorCatastralConstruccion],
+    );
+    if (a.valorCatastralConstruccion > a.valorCatastral) {
+      throw new RentaError(`En ${a.descripcion}, el valor catastral de la construcción no puede superar el valor catastral total.`);
+    }
+  }
+  for (const x of [...e.inmuebles.map((i) => [i.dias, i.porcentaje]), ...e.alquileres.map((a) => [a.diasAlquilado, a.porcentaje])]) {
+    if (!(x[0] >= 0 && x[0] <= DIAS_ANIO) || !(x[1] > 0 && x[1] <= 100)) {
+      throw new RentaError("Los días deben estar entre 0 y 365 y el porcentaje de titularidad entre 1 y 100.");
+    }
+  }
   for (const [nombre, v] of importes) {
     if (!Number.isFinite(v) || v < 0) throw new RentaError(`Importe no válido en ${nombre}.`);
   }
@@ -158,7 +194,52 @@ export function calcular(e: Entrada): Resultado {
   });
   const neto = r2(netoPrevio - otrosGastos);
 
-  const otrasRentas = r2(e.intereses + e.dividendos + Math.max(0, e.gananciasPatrimoniales));
+  /* 1 bis. Inmuebles: alquileres (arts. 22 y 23) e imputación de rentas (art. 85) ── */
+  let capitalInmobiliario = 0;
+  for (const a of e.alquileres) {
+    const parte = a.porcentaje / 100;
+    const ingresos = r2(a.ingresos * parte);
+    const financiacion = r2(Math.min(a.interesesYReparacion * parte, ingresos));
+    const exceso = r2(a.interesesYReparacion * parte - financiacion);
+    // Amortización: 3 % del mayor entre el coste de adquisición y el valor
+    // catastral, sin el suelo, por los días alquilados.
+    const proporcionConstruccion = a.valorCatastral > 0 ? a.valorCatastralConstruccion / a.valorCatastral : 0;
+    const baseAmortizacion = Math.max(a.costeAdquisicion * proporcionConstruccion, a.valorCatastralConstruccion);
+    const amortizacion = r2(((baseAmortizacion * est.amortizacionInmueble) / 100) * (a.diasAlquilado / DIAS_ANIO) * parte);
+    const neto = r2(ingresos - financiacion - a.otrosGastos * parte - amortizacion);
+    const reduccion = neto > 0 ? r2((neto * a.reduccion) / 100) : 0;
+    capitalInmobiliario += neto - reduccion;
+    paso({
+      id: `inmobiliario.${a.descripcion}`, concepto: `Rendimiento neto reducido del alquiler: ${a.descripcion}`, importe: neto - reduccion,
+      formula: `Ingresos − intereses y reparaciones (hasta el importe de los ingresos) − otros gastos − amortización (3 % de la construcción); reducción del ${a.reduccion} % si el neto es positivo`,
+      norma: `${est.fuentes.alquiler.norma}; ${est.fuentes.reduccionAlquiler.norma}`,
+      datos: { ingresos, interesesYReparacion: financiacion, otrosGastos: r2(a.otrosGastos * parte), amortizacion, rendimientoNeto: neto, reduccion },
+    });
+    if (exceso > 0) {
+      avisos.push({ nivel: "info", texto: `En ${a.descripcion} quedan ${exceso.toFixed(2)} € de intereses y reparaciones sin deducir este año. Puedes deducirlos en los cuatro ejercicios siguientes.` });
+    }
+    if (a.diasAlquilado < DIAS_ANIO) {
+      avisos.push({ nivel: "revisar", texto: `${a.descripcion} no ha estado alquilado todo el año. Por los días restantes hay que imputar renta: añádelo también como inmueble a tu disposición.` });
+    }
+  }
+  capitalInmobiliario = r2(capitalInmobiliario);
+
+  let imputadas = 0;
+  for (const i of e.inmuebles) {
+    const tipo = i.revisado ? est.imputacionInmuebles.revisado : est.imputacionInmuebles.general;
+    const renta = r2(((i.valorCatastral * tipo) / 100) * (i.dias / DIAS_ANIO) * (i.porcentaje / 100));
+    imputadas += renta;
+    paso({
+      id: `imputacion.${i.descripcion}`, concepto: `Renta imputada: ${i.descripcion}`, importe: renta,
+      formula: `Valor catastral × ${tipo} % × días a tu disposición / 365 × porcentaje de titularidad`,
+      norma: est.fuentes.imputacion.norma,
+      datos: { valorCatastral: i.valorCatastral, dias: i.dias, porcentaje: i.porcentaje },
+    });
+  }
+  imputadas = r2(imputadas);
+  const rentasInmuebles = r2(capitalInmobiliario + imputadas);
+
+  const otrasRentas = r2(e.intereses + e.dividendos + Math.max(0, e.gananciasPatrimoniales) + Math.max(0, rentasInmuebles));
   const rt = est.reduccionTrabajo;
   let reduccionTrabajo = 0;
   if (integro > 0 && netoPrevio < rt.tramo3Hasta && otrasRentas <= rt.limiteOtrasRentas) {
@@ -182,9 +263,14 @@ export function calcular(e: Entrada): Resultado {
   });
 
   /* 2. Base imponible ───────────────────────────────────────────────────── */
+  if (netoReducido + rentasInmuebles < 0) {
+    avisos.push({ nivel: "info", texto: "Tus alquileres dan un rendimiento negativo mayor que el resto de tus rentas generales. El exceso puede compensarse en los cuatro ejercicios siguientes." });
+  }
   const big = paso({
-    id: "base.general", concepto: "Base imponible general", importe: netoReducido,
-    formula: "Rendimiento neto reducido del trabajo", norma: "Art. 48 Ley 35/2006",
+    id: "base.general", concepto: "Base imponible general", importe: Math.max(0, netoReducido + rentasInmuebles),
+    formula: "Rendimiento neto reducido del trabajo + rendimientos de alquileres + rentas inmobiliarias imputadas",
+    norma: "Art. 48 Ley 35/2006",
+    datos: { trabajo: netoReducido, alquileres: capitalInmobiliario, rentasImputadas: imputadas },
   });
 
   const rcm = r2(e.intereses + e.dividendos);
@@ -317,6 +403,26 @@ export function calcular(e: Entrada): Resultado {
       datos: { donado: e.donativos, baseDeduccion: base },
     });
   }
+  if (e.ccaa === "ceuta" || e.ccaa === "melilla") {
+    if (e.trabajoEnCeutaMelilla) {
+      // Solo sobre la parte de las cuotas que corresponde al trabajo realizado allí.
+      const baseTotal = blg + bla;
+      const proporcion = baseTotal > 0 ? Math.min(1, netoReducido / baseTotal) : 0;
+      const importe = Math.min(r2((cuotaIntegra * proporcion * est.deduccionCeutaMelilla) / 100), r2(cuotaIntegra - deducciones));
+      deducciones += importe;
+      paso({
+        id: "deduccion.ceuta_melilla", concepto: `Deducción por rentas obtenidas en ${aut.nombre}`, importe,
+        formula: "60 % de la parte de las cuotas íntegras que corresponde a los rendimientos del trabajo realizado en la ciudad",
+        norma: est.fuentes.ceutaMelilla.norma,
+        datos: { cuotaIntegra, proporcion: r2(proporcion * 100) + " %" },
+      });
+      if (proporcion < 1) {
+        avisos.push({ nivel: "revisar", texto: `La deducción del 60 % se ha aplicado solo a tu trabajo. Si tus otras rentas también proceden de ${aut.nombre}, o llevas más de tres años residiendo allí, puede corresponderte más.` });
+      }
+    } else {
+      avisos.push({ nivel: "revisar", texto: `No se ha aplicado la deducción del 60 % por rentas obtenidas en ${aut.nombre} porque no has indicado que tu trabajo se realice allí.` });
+    }
+  }
   const cuotaLiquidaPrevia = r2(Math.max(0, cuotaIntegra - deducciones));
 
   // D.A. 61.ª: solo salarios (prestación efectiva de servicios), no pensiones ni desempleo.
@@ -355,10 +461,43 @@ export function calcular(e: Entrada): Resultado {
     formula: "Suma de lo retenido por pagadores, bancos y gestoras", norma: "Art. 79 Ley 35/2006",
     datos: { trabajo: r2(e.trabajo.reduce((s, t) => s + t.retencion, 0)), capital: e.retencionesCapital, ganancias: e.retencionesGanancias },
   });
+  /* 8. Deducciones familiares (arts. 81 y 81 bis): minoran la cuota diferencial ── */
+  const hijosConDerecho = e.descendientes.filter((h) => descendienteConDerecho(h, e.ejercicio));
+  const mesesMaternidad = e.maternidad ? hijosConDerecho.reduce((n, h) => n + mesesMenorDeTres(h.fechaNacimiento, e.ejercicio), 0) : 0;
+  const maternidad = r2((est.maternidad / 12) * mesesMaternidad);
+  let familiaNumerosa = 0;
+  let discapacidadACargo = 0;
+  if (e.requisitoDeduccionesFamiliares) {
+    if (e.familiaNumerosa !== "no") {
+      const fn = est.familiaNumerosa;
+      familiaNumerosa = (e.familiaNumerosa === "especial" ? fn.especial : fn.general) + fn.porHijoExceso * e.hijosExcesoFamiliaNumerosa;
+      if (e.familiaNumerosaCompartida) familiaNumerosa /= 2;
+    }
+    for (const h of hijosConDerecho) {
+      if (h.discapacidad !== "ninguna") discapacidadACargo += est.discapacidadACargo / (h.compartido ? 2 : 1);
+    }
+    for (const x of e.ascendientes.filter((y) => ascendienteConDerecho(y, e.ejercicio))) {
+      if (x.discapacidad !== "ninguna") discapacidadACargo += est.discapacidadACargo / Math.max(1, x.contribuyentesConDerecho);
+    }
+  }
+  const familiaresBrutas = r2(maternidad + familiaNumerosa + discapacidadACargo);
+  const deduccionesFamiliares = r2(familiaresBrutas - e.deduccionesAnticipadas);
+  if (familiaresBrutas > 0 || e.deduccionesAnticipadas > 0) {
+    paso({
+      id: "deduccion.familiares", concepto: "Deducciones por maternidad, familia numerosa y discapacidad a cargo", importe: deduccionesFamiliares,
+      formula: "Maternidad: 100 € por cada mes con un hijo menor de 3 años. Familia numerosa: 1.200 € (2.400 € la especial) más 600 € por hijo de más. Discapacidad a cargo: 1.200 € por persona. Menos lo ya cobrado por adelantado",
+      norma: `${est.fuentes.maternidad.norma}; ${est.fuentes.familiares.norma}`,
+      datos: { maternidad, mesesMaternidad: String(mesesMaternidad), familiaNumerosa: r2(familiaNumerosa), discapacidadACargo: r2(discapacidadACargo), cobradoPorAdelantado: e.deduccionesAnticipadas },
+    });
+  }
+  if (familiaNumerosa + discapacidadACargo > 0) {
+    avisos.push({ nivel: "revisar", texto: "Las deducciones por familia numerosa y discapacidad a cargo se han calculado para el año completo. Se reducen si no cumpliste los requisitos todos los meses y, para trabajadores en activo, no pueden superar tus cotizaciones a la Seguridad Social." });
+  }
+
   const resultado = paso({
-    id: "resultado", concepto: "Resultado de la declaración", importe: cuotaLiquida - retenciones,
-    formula: "Cuota resultante − retenciones. Positivo: a pagar. Negativo: a devolver",
-    norma: "Arts. 79 y 103 Ley 35/2006",
+    id: "resultado", concepto: "Resultado de la declaración", importe: cuotaLiquida - retenciones - deduccionesFamiliares,
+    formula: "Cuota resultante − retenciones − deducciones familiares. Positivo: a pagar. Negativo: a devolver",
+    norma: "Arts. 79, 81, 81 bis y 103 Ley 35/2006",
   });
 
   /* Avisos generales ────────────────────────────────────────────────────── */
@@ -369,11 +508,13 @@ export function calcular(e: Entrada): Resultado {
   if (sinDerecho > 0) {
     avisos.push({ nivel: "revisar", texto: `${sinDerecho} de los familiares indicados no da derecho al mínimo: los hijos deben ser menores de 25 años y los ascendientes mayores de 65, salvo que tengan discapacidad.` });
   }
-  if (e.descendientes.some((h) => edadADevengo(h.fechaNacimiento, e.ejercicio) < 3)) {
-    avisos.push({ nivel: "revisar", texto: "Tienes hijos menores de 3 años: revisa la deducción por maternidad (hasta 1.200 € por hijo), que aquí no se calcula." });
+  if (maternidad > 0) {
+    avisos.push({ nivel: "revisar", texto: "No se ha calculado el incremento de hasta 1.000 € por gastos de guardería ni el de 150 € del mes en que se completan 30 días cotizados." });
+  } else if (e.descendientes.some((h) => edadADevengo(h.fechaNacimiento, e.ejercicio) < 3)) {
+    avisos.push({ nivel: "revisar", texto: "Tienes hijos menores de 3 años: si eres su madre y trabajas, revisa la deducción por maternidad (hasta 1.200 € por hijo)." });
   }
-  if (e.descendientes.filter((h) => descendienteConDerecho(h, e.ejercicio)).length >= 3) {
-    avisos.push({ nivel: "revisar", texto: "Con tres o más hijos puedes tener derecho a la deducción por familia numerosa, que aquí no se calcula." });
+  if (familiaNumerosa === 0 && hijosConDerecho.length >= 3) {
+    avisos.push({ nivel: "revisar", texto: "Con tres o más hijos puedes tener derecho a la deducción por familia numerosa: indícalo en tus datos." });
   }
   const edades = [e.declarante, ...(e.conyuge && e.modalidad === "conjunta_matrimonio" ? [e.conyuge] : [])].map((p) => edadADevengo(p.fechaNacimiento, e.ejercicio));
   if (edades.some((x) => x === 65 || x === 75)) {
@@ -383,7 +524,7 @@ export function calcular(e: Entrada): Resultado {
   const porPagador = e.trabajo.map((t) => t.integro).sort((a, b) => b - a);
   const resto = r2(porPagador.slice(1).reduce((s, v) => s + v, 0));
   const limite = porPagador.length > 1 && resto > o.umbralSegundoPagador ? o.variosPagadores : o.unPagador;
-  if (integro > 0 && integro <= limite && rcm + Math.max(0, e.gananciasPatrimoniales) <= 1600) {
+  if (integro > 0 && integro <= limite && rcm + Math.max(0, e.gananciasPatrimoniales) <= 1600 && e.alquileres.length === 0 && imputadas <= 1000) {
     avisos.push({ nivel: "info", texto: `Por tus rendimientos del trabajo (límite de ${limite.toLocaleString("es-ES")} €) es posible que no estés obligado a declarar. ${resultado < 0 ? "Aun así te conviene presentarla: te sale a devolver." : "Si te sale a pagar, puedes no presentarla."}` });
   }
   if (aut.nota) avisos.push({ nivel: "revisar", texto: aut.nota });
@@ -398,7 +539,7 @@ export function calcular(e: Entrada): Resultado {
     baseLiquidableGeneral: blg, baseLiquidableAhorro: bla,
     minimoEstatal, minimoAutonomico,
     cuotaIntegraEstatal, cuotaIntegraAutonomica,
-    deducciones, cuotaLiquida, retenciones, resultado,
+    deducciones, cuotaLiquida, retenciones, deduccionesFamiliares, resultado,
     signo: resultado > 0 ? "a_pagar" : resultado < 0 ? "a_devolver" : "cero",
     pasos, avisos,
   };
